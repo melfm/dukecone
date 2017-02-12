@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="dukecone" type="example_talker.py" name="example" output="screen" />
+  <node pkg="dukecone" type="example_listener.py" name="example_listener" output="screen" />
+</launch>

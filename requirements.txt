@@ -1,0 +1,4 @@
+ros
+numpy
+scipy
+tensorflow
