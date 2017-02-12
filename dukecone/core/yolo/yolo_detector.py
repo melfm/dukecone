@@ -8,7 +8,6 @@ from yolo_cnn_net import Yolo_tf
 # Model parameters as external flags.
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_string('load_test_file', '/home/melissa/Workspace/YOLO_tensorflow-master/puppy.jpg', 'Test image file')
 flags.DEFINE_integer('threshold', 0.2, 'YOLO sensitivity threshold')
 flags.DEFINE_integer('alpha', 0.1, 'YOLO alpha')
 flags.DEFINE_integer('iou_threshold', 0.5, 'YOLO iou threshold')
