@@ -9,25 +9,37 @@ from cv_bridge import CvBridge, CvBridgeError
 class ImageViewer(object):
     def __init__(self):
         self.bridge = CvBridge()
-        self.image_topic = "/camera/depth_registered/image_raw"
-        self.image_sub = rospy.Subscriber(self.image_topic,
-                                          Image,
-                                          self.callback)
+        self.image_rgb = "/camera/rgb/image_color"
+        self.image_depth = "/camera/depth_registered/image"
+        self.rgb_image_sub = rospy.Subscriber(self.image_rgb,
+                                              Image,
+                                              self.rgb_callback)
+        self.depth_image_sub = rospy.Subscriber(self.image_depth,
+                                                Image,
+                                                self.depth_callback)
 
-    def callback(self, data):
+    def rgb_callback(self, data):
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(data)
-            depth_image = cv_image.astype(np.uint8)
-
+            cv_rgb_image = self.bridge.imgmsg_to_cv2(data,"bgr8")
         except CvBridgeError as e:
             print(e)
 
-        print cv_image
-        #cv2.imshow("Image", cv_image)
-        cv2.imwrite("gray_image.jpg", depth_image)
-        print(np.argmax(depth_image))
-        print depth_image.dtype
+        cv2.imshow("RgbImage", cv_rgb_image)
+        cv2.imwrite("rgb_image.jpg", cv_rgb_image)
         cv2.waitKey(1)
+
+    def depth_callback(self, data):
+        try:
+            cv_depth_image = self.bridge.imgmsg_to_cv2(data, "8UC1")
+        except CvBridgeError as e:
+            print(e)
+
+        normalized = np.copy(cv_depth_image)
+        cv2.normalize(normalized, cv_depth_image, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
+        cv2.imshow("Depth Image", cv_depth_image)
+        cv2.imwrite("gray_image.jpg", cv_depth_image)
+        cv2.waitKey(1)
+
 
 
 if __name__ == "__main__":

@@ -1,2 +1,2 @@
 #!/bin/sh
-python camera_node.py
+python dukecone/ros/camera_node.py
