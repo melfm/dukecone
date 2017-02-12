@@ -1,5 +1,5 @@
 # duke-cone
 
-EKF-SLAM with object detection using CNNs
+EKF-Localization with object detection using CNNs
 
 
