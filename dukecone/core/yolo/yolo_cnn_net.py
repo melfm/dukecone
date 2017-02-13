@@ -177,6 +177,7 @@ class Yolo_tf:
         strtime = str(time.time()-s)
         if self.disp_console:
             print 'Elapsed time : ' + strtime + ' secs' + '\n'
+        return self.result
 
     def detect_from_file(self, filename):
         if self.disp_console:
