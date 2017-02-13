@@ -41,13 +41,13 @@ class Yolo_tf:
         self.tofile_img = FLAGS.save_test_file
         self.imshow = True
 
-        self.filewrite_img = True
+        self.filewrite_img = False
         self.filewrite_txt = False
         self.disp_console = True
 
         self.build_networks()
-        if FLAGS.load_test_file is not None:
-            self.detect_from_file(FLAGS.load_test_file)
+        #if FLAGS.load_test_file is not None:
+        #    self.detect_from_file(FLAGS.load_test_file)
 
     def build_networks(self):
         if self.disp_console:
@@ -185,6 +185,11 @@ class Yolo_tf:
         #img = misc.imread(filename)
         self.detect_from_cvmat(img)
 
+    def detect_from_kinect(self, image):
+        # Check image is valid
+        if image is not None:
+            self.detect_from_cvmat(image)
+
     def detect_from_crop_sample(self):
         self.w_img = 640
         self.h_img = 420
@@ -302,7 +307,7 @@ class Yolo_tf:
             cv2.imwrite(self.tofile_img, img_cp)
         if self.imshow:
             cv2.imshow('YOLO_small detection', img_cp)
-            cv2.waitKey(5000)
+            cv2.waitKey(1)
         if self.filewrite_txt:
             if self.disp_console:
                 print '    txt file writed : ' + self.tofile_txt

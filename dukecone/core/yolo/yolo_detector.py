@@ -2,8 +2,9 @@ import tensorflow as tf
 import argparse
 import os
 from yolo_cnn_net import Yolo_tf
-
-#import pdb
+import rospy
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
 
 # Model parameters as external flags.
 flags = tf.app.flags
@@ -17,8 +18,24 @@ flags.DEFINE_integer('grid_size', 7, 'Number of boxes')
 flags.DEFINE_integer('image_width', 480, 'Width of image')
 flags.DEFINE_integer('image_height', 640, 'Height of image')
 
-def main(_):
-    yolo = Yolo_tf(FLAGS)
+
+class YoloNode(object):
+
+    def __init__(self, yolo):
+        self.bridge = CvBridge()
+        self.image_rgb = "/camera/rgb/image_color"
+        self.rgb_image_sub = rospy.Subscriber(self.image_rgb,
+                                              Image,
+                                              self.image_callback)
+
+    def image_callback(self, data):
+        try:
+            cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            # Do detection
+            yolo.detect_from_kinect(cv_image)
+        except CvBridgeError as e:
+                        print(e)
+
 
 if __name__ == '__main__':
 
@@ -39,7 +56,15 @@ if __name__ == '__main__':
     parser.add_argument('--image_width', type =int, default= 480)
     parser.add_argument('--image_height', type =int, default= 640)
 
-
-
     FLAGS = parser.parse_args()
-    tf.app.run()
+
+    # Create yolo detector instance
+    yolo = Yolo_tf(FLAGS)
+    # Run the Yolo ros node
+    yolonode = YoloNode(yolo)
+    rospy.init_node('YoloNode', anonymous=True)
+
+    try:
+        rospy.spin()
+    except KeyboardInterrupt:
+        print("Shutting down")
