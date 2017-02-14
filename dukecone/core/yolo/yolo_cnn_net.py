@@ -40,7 +40,7 @@ class Yolo_tf:
         self.tofile_img = FLAGS.save_test_file
         self.imshow = True
 
-        self.filewrite_img = False
+        self.filewrite_img = True
         self.filewrite_txt = False
         self.disp_console = True
 
@@ -121,7 +121,9 @@ class Yolo_tf:
             '_conv')
         conv_biased = tf.add(conv, biases, name=str(idx)+'_conv_biased')
         if self.disp_console:
-            print '    Layer  %d : Type = Conv, Size = %d * %d, Stride = %d, Filters = %d, Input channels = %d' % (idx, size, size, stride, filters, int(channels))
+            print '    Layer  %d : Type = Conv, Size = %d * %d, \
+                Stride = %d, Filters = %d, Input channels = %d'\
+                % (idx, size, size, stride, filters, int(channels))
         return tf.maximum(
             self.alpha *
             conv_biased,
@@ -131,7 +133,8 @@ class Yolo_tf:
 
     def pooling_layer(self, idx, inputs, size, stride):
         if self.disp_console:
-            print '    Layer  %d : Type = Pool, Size = %d * %d, Stride = %d' % (idx, size, size, stride)
+            print '    Layer  %d : Type = Pool, Size = %d * %d, \
+                Stride = %d' % (idx, size, size, stride)
         return tf.nn.max_pool(
             inputs, ksize=[1, size, size, 1],
             strides=[1, stride, stride, 1],
@@ -149,7 +152,9 @@ class Yolo_tf:
         weight = tf.Variable(tf.truncated_normal([dim, hiddens], stddev=0.1))
         biases = tf.Variable(tf.constant(0.1, shape=[hiddens]))
         if self.disp_console:
-            print '    Layer  %d : Type = Full, Hidden = %d, Input dimension = %d, Flat = %d, Activation = %d' % (idx, hiddens, int(dim), int(flat), 1-int(linear))
+            print '    Layer  %d : Type = Full, Hidden = %d, \
+                Input dimension = %d, Flat = %d, Activation = %d' \
+                % (idx, hiddens, int(dim), int(flat), 1-int(linear))
         if linear:
             return tf.add(
                 tf.matmul(
@@ -183,7 +188,7 @@ class Yolo_tf:
             print 'Detect from ' + filename
         img = cv2.imread(filename)
         #img = misc.imread(filename)
-        self.detect_from_cvmat(img)
+        return self.detect_from_cvmat(img)
 
     def detect_from_kinect(self, image):
         # Check image is valid

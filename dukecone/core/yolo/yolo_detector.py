@@ -75,10 +75,9 @@ class YoloNode(object):
 
                 # TODO : Double check this
                 x1 = x - w
-                y1 = y - h - 20
+                y1 = y - h
                 x2 = x + w
-                y2 = y - h
-                print(x1, x2, y1, y2)
+                y2 = y + h
                 x_center = (x1 + x2) / 2
                 y_center = (y1 +y2) / 2
                 print("X center, y_center", x_center, y_center)
