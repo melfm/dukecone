@@ -3,7 +3,6 @@ import tensorflow as tf
 import cv2
 import time
 
-
 class Yolo_tf:
 
     def __init__(self, FLAGS):
@@ -46,7 +45,7 @@ class Yolo_tf:
         self.disp_console = True
 
         self.build_networks()
-        #if FLAGS.load_test_file is not None:
+        # if FLAGS.load_test_file is not None:
         #    self.detect_from_file(FLAGS.load_test_file)
 
     def build_networks(self):
@@ -189,7 +188,8 @@ class Yolo_tf:
     def detect_from_kinect(self, image):
         # Check image is valid
         if image is not None:
-            self.detect_from_cvmat(image)
+            results = self.detect_from_cvmat(image)
+        return results
 
     def detect_from_crop_sample(self):
         self.w_img = 640
@@ -290,7 +290,9 @@ class Yolo_tf:
             w = int(results[i][3])//2
             h = int(results[i][4])//2
             if self.disp_console:
-                print '    class : ' + results[i][0] + ' , [x,y,w,h]=[' + str(x) + ',' + str(y) + ',' + str(int(results[i][3])) + ',' + str(int(results[i][4]))+'], Confidence = ' + str(results[i][5])
+                print '    class : ' + results[i][0] + ' , [x,y,w,h]=[' + \
+                str(x) + ',' + str(y) + ',' + str(int(results[i][3])) + ',' \
+                    + str(int(results[i][4]))+'], Confidence = ' + str(results[i][5])
             if self.filewrite_img or self.imshow:
                 cv2.rectangle(img_cp, (x-w, y-h), (x+w, y+h), (0, 255, 0), 2)
                 cv2.rectangle(

@@ -8,7 +8,7 @@ from yolo_cnn_net import Yolo_tf
 
 import rospy
 from sensor_msgs.msg import Image
-from dukecone.msg import *
+from dukecone.msg import ObjectLocation
 from cv_bridge import CvBridge, CvBridgeError
 
 # Model parameters as external flags.
@@ -28,17 +28,21 @@ class YoloNode(object):
     def __init__(self, yolo):
         self.bridge = CvBridge()
         self.image_rgb_topic = "/camera/rgb/image_color"
-        self.image_depth_topic  = "/camera/depth_registered/image"
+        self.image_depth_topic  = "/camera/depth_registered/image_raw"
         self.rgb_image_sub = rospy.Subscriber(self.image_rgb_topic,
                                               Image,
                                               self.image_callback)
+        self.depth_image_sub = rospy.Subscriber(self.image_depth_topic,
+                                                Image,
+                                                self.depth_callback)
+
         self.image_depth = None
         self.tf_topic = 'tensorflow/object/location'
         self.pub_img_pos = rospy.Publisher(self.tf_topic, ObjectLocation, queue_size=1)
 
     def image_callback(self, data):
         try:
-            image_depth_copy = deepcopy.copy(self.image_depth)
+            image_depth_copy = deepcopy(self.image_depth)
             cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
             # Do detection
             results = yolo.detect_from_kinect(cv_image)
@@ -55,28 +59,51 @@ class YoloNode(object):
             print(e)
 
     def calculate_distance(self, results, image_depth):
+        # Only publish if you see a cone and the closest
+        # Loop through all the bounding boxes and find max
+        nearest_object_dist = None
+        detected = False
+        bounding_box = None
         for i in range(len(results)):
-            x = int(results[i][1])
-            y = int(results[i][2])
-            w = int(results[i][3])//2
-            h = int(results[i][4])//2
+            # for now grab puppy since we cant detect cones
+            if(results[i][0] == 'dog'):
+                detected = True
+                x = int(results[i][1])
+                y = int(results[i][2])
+                w = int(results[i][3])//2
+                h = int(results[i][4])//2
 
-            x_center = (x + w) / 2
-            y_center = (y + h) / 2
-            print("X center, y_center", x_center, " " , y_center)
+                # TODO : Double check this
+                x1 = x - w
+                y1 = y - h - 20
+                x2 = x + w
+                y2 = y - h
+                print(x1, x2, y1, y2)
+                x_center = (x1 + x2) / 2
+                y_center = (y1 +y2) / 2
+                print("X center, y_center", x_center, y_center)
+                # TODO : Test if we are getting the  correct distance
+                center_pixel_depth = image_depth[x_center, y_center]
+                distance = float(center_pixel_depth)
+                print("Distance from target: ", distance)
+                if distance > nearest_object_dist :
+                    nearest_object_dist = distance
+                    bounding_box = [x, y, w, h]
 
-            center_pixel_depth = image_depth[x_center, y_center]
-            distance = float(center_pixel_depth)
-            print("Distance from target: ", distance)
+        if(detected):
             # Publish the distance and bounding box
-            object_topic = construct_topic(results, distance)
+            object_topic = self.construct_topic(bounding_box, nearest_object_dist)
             rospy.loginfo(self.pub_img_pos)
             self.pub_img_pos.publish(object_topic)
 
     def construct_topic(self, bounding_box, distance):
-            pass
-
-
+        obj_loc = ObjectLocation()
+        obj_loc.x_pos = bounding_box[0]
+        obj_loc.y_pos = bounding_box[1]
+        obj_loc.width = bounding_box[2]
+        obj_loc.height = bounding_box[3]
+        obj_loc.distance = distance
+        return obj_loc
 
 if __name__ == '__main__':
     current_dir = os.getcwd()
@@ -103,7 +130,8 @@ if __name__ == '__main__':
     # Run the Yolo ros node
     yolonode = YoloNode(yolo)
     rospy.init_node('YoloNode', anonymous=True)
-    r = rospy.Rate(50)
+    # what rate do we want?
+    #r = rospy.Rate(50)
 
     try:
         rospy.spin()
