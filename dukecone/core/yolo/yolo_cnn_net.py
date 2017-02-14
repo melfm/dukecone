@@ -188,7 +188,9 @@ class Yolo_tf:
             print 'Detect from ' + filename
         img = cv2.imread(filename)
         #img = misc.imread(filename)
-        return self.detect_from_cvmat(img)
+        results = self.detect_from_cvmat(img)
+        image_size = img.shape[:2]
+        return results, image_size
 
     def detect_from_kinect(self, image):
         # Check image is valid

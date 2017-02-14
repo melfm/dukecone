@@ -60,7 +60,7 @@ class YoloNode(object):
 
     def calculate_distance(self, results, image_depth):
         # Only publish if you see a cone and the closest
-        # Loop through all the bounding boxes and find max
+        # Loop through all the bounding boxes and find min
         nearest_object_dist = None
         detected = False
         bounding_box = None
@@ -85,7 +85,7 @@ class YoloNode(object):
                 center_pixel_depth = image_depth[x_center, y_center]
                 distance = float(center_pixel_depth)
                 print("Distance from target: ", distance)
-                if distance > nearest_object_dist :
+                if distance < nearest_object_dist :
                     nearest_object_dist = distance
                     bounding_box = [x, y, w, h]
 

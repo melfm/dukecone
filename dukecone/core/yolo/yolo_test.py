@@ -76,18 +76,21 @@ class YoloDetectionTest(unittest.TestCase):
         cls.image_dir = image_dir + 'seen_puppy.jpg'
 
     def test_bounding_box(self):
-        results = self.yolo.detect_from_file(self.image_dir)
+        results, img_size = self.yolo.detect_from_file(self.image_dir)
         print(results)
         obj_class = results[0][0]
         self.assertEqual('dog', obj_class)
         x = int(results[0][1])
         y = int(results[0][2])
+        print("weidth and height before ",int(results[0][3]) \
+              , int(results[0][4]))
         w = int(results[0][3])//2
         h = int(results[0][4])//2
-        print(x,y,w,h)
-        img = np.zeros((640, 480, 3), np.uint8)
+        print("weidth and height before ", w, h)
+        #print(x,y,w,h)
+        img = np.zeros((img_size[0], img_size[1], 3), np.uint8)
         img[:,:] = (255, 0, 0)
-        cv2.rectangle(img, (x-w, y-h), (x+w, y+h), (125, 125, 125), -1)
+        cv2.rectangle(img, (x-w, y-h), (x+w, y+h), (0, 255, 0), 2)
         cv2.imwrite('bounding_box.jpg', img)
 
 
