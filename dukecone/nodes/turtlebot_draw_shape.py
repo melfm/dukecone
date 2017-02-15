@@ -3,7 +3,7 @@
 # Turtlebot(indigo) drawing shapes
 
 import rospy
-from gemometry_msgs.msg import Twist, Vector3
+from geometry_msgs.msg import Twist, Vector3
 from math import radians, pi
 
 
