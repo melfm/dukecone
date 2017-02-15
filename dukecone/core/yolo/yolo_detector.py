@@ -2,6 +2,7 @@
 import os
 from copy import deepcopy
 import argparse
+import sys
 
 import tensorflow as tf
 from yolo_cnn_net import Yolo_tf
@@ -61,7 +62,7 @@ class YoloNode(object):
     def calculate_distance(self, results, image_depth):
         # Only publish if you see a cone and the closest
         # Loop through all the bounding boxes and find min
-        nearest_object_dist = None
+        nearest_object_dist = sys.maxint
         detected = False
         bounding_box = None
         for i in range(len(results)):
@@ -80,7 +81,6 @@ class YoloNode(object):
                 y2 = y + h
                 x_center = (x1 + x2) / 2
                 y_center = (y1 +y2) / 2
-                print("X center, y_center", x_center, y_center)
                 # TODO : Test if we are getting the  correct distance
                 center_pixel_depth = image_depth[x_center, y_center]
                 distance = float(center_pixel_depth)
