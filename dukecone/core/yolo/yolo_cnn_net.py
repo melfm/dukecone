@@ -40,7 +40,7 @@ class Yolo_tf:
         self.tofile_img = FLAGS.save_test_file
         self.imshow = True
 
-        self.filewrite_img = True
+        self.filewrite_img = False
         self.filewrite_txt = False
         self.disp_console = True
 
