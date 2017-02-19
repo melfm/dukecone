@@ -18,7 +18,7 @@ class EKF_test(unittest.TestCase):
 
 
     def test_basic_setup(self):
-        state_vec = self.ekf_loc.x
+        state_vec = self.ekf_loc.bot.states
         #print('State vec', state_vec)
 
         #print('Control input', self.ekf_loc.u)
@@ -26,27 +26,26 @@ class EKF_test(unittest.TestCase):
 
 
     def test_state_update(self):
-        #self.ekf_loc.run_simulation()
-        pass
+        self.ekf_loc.run_simulation()
 
     def test_closest_feat(self):
         feature_map =  np.matrix('5 5; 3 1 ;-4 5; -2 3; 0 4')
         state = [1, 1, 0]
 
         res = self.ekf_loc.closest_feature(feature_map, state)
-        np.testing.assert_array_equal(res, [[3 ,1]])
+        np.testing.assert_array_equal(res, [3 ,1])
 
         state = [4, 5 , 0]
         res = self.ekf_loc.closest_feature(feature_map, state)
-        np.testing.assert_array_equal(res, [[5 ,5]])
+        np.testing.assert_array_equal(res, [5 ,5])
 
         state = [10, 8 , 0]
         res = self.ekf_loc.closest_feature(feature_map, state)
-        np.testing.assert_array_equal(res, [[5 ,5]])
+        np.testing.assert_array_equal(res, [5 ,5])
 
         state = [-3,  3 , 0]
         res = self.ekf_loc.closest_feature(feature_map, state)
-        np.testing.assert_array_equal(res, [[-2 ,3]])
+        np.testing.assert_array_equal(res, [-2 ,3])
 
 if __name__ == '__main__':
     unittest.main()

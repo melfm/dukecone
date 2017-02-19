@@ -4,6 +4,7 @@ import numpy as np
 import math
 from scipy import linalg as la
 import matplotlib.pyplot as plt
+import copy
 
 import pdb
 
@@ -12,8 +13,11 @@ class TurtleBot:
 
     def __init__(self):
         self.states = []
-        self.mup = []
+        self.mup = [0, 0, 0]
         self.y = []
+
+        self.mu = [0, 0, 0]             # mean
+        self.S = 0.1 * np.identity(3)   # Covariance matrix
 
         q = [0.01, 0.01]
         self.Q = np.diag(q)
@@ -23,29 +27,32 @@ class TurtleBot:
 
     def update(self, u, dt):
         # Select a motion disturbance
-        e = np.random.multivariate_normal([0, 0, 0], self.R, 1)
-        self.states[0] = self.states[0] + u[0] * np.cos(self.states[2]) * dt + e
-        self.states[1] = self.states[1] + u[0] * np.sin(self.states[2]) * dt + e
-        self.states[2] = self.states[2] + u[1] * dt + e
+        #e = np.random.multivariate_normal([0, 0, 0], self.R, 1)
+        #self.states[0] = self.states[0] + u[0] * np.cos(self.states[2]) * dt + e
+        #self.states[1] = self.states[1] + u[0] * np.sin(self.states[2]) * dt + e
+        #self.states[2] = self.states[2] + u[1] * dt + e
+        self.states[0] = self.states[0] + u[0] * np.cos(self.states[2]) * dt
+        self.states[1] = self.states[1] + u[0] * np.sin(self.states[2]) * dt
+        self.states[2] = self.states[2] + u[1] * dt
 
     def update_estimate(self, u, dt):
         self.mup[0] = self.mu[0] + (u[0] * np.cos(self.mu[2]) * dt)
         self.mup[1] = self.mu[1] + (u[0] * np.sin(self.mu[2]) * dt)
-        self.mup[2] = self.mu[2] + (u[1] * self.dt)
+        self.mup[2] = self.mu[2] + (u[1] * dt)
 
     def update_measurement(self, mf):
         # Select a motion disturbance
-        dn = np.random.multivariate_normal([0, 0], self.Q, 1)
+        #dn = np.random.multivariate_normal([0, 0], self.Q, 1)
         # Determine measurement
-        meas_range = np.sqrt(np.power((self.mf[0] - self.x[0]), 2)) + dn[0]
+        meas_range = np.sqrt(np.power((mf[0] - self.states[0]), 2))  # + dn[0]
         meas_bearing = math.atan2(
             (mf[1] - self.states[1]),
             (mf[0] - self.states[0]))
         meas_bearing -= self.states[2]
-        meas_bearing += dn[1]
-
-        self.y[0] = meas_range
-        self.y[1] = meas_bearing
+        #meas_bearing += dn[1]
+        self.y = []
+        self.y.append(meas_range)
+        self.y.append(meas_bearing)
 
 
 class EKF():
@@ -56,20 +63,14 @@ class EKF():
         # Simulation parameters
         self.x0 = [0, 0, 0]             # initial state
         self.n = len(self.x0)           # number of states
-        self.nS = 1000                  # number of samples
         self.Tf = 20
         self.dt = 0.1
         self.T = np.arange(0, (self.Tf + self.dt), 0.1)
 
-        self.mu = [0, 0, 0]             # mean
-        self.S = 0.1 * np.identity(3)   # Covariance matrix
-
-        self.y = []
-        self.bot.states[0] = self.x0
+        self.bot.states = self.x0
 
         # Control inputs
-        self.u = np.ones([2, len(self.T)])
-        self.u[1, :] = 0.3 * self.u[1, :]
+        self.u = [1, 0.3]
 
         # Feature map
         self.feat_map = np.matrix('5 5; 3 1 ;-4 5; -2 3; 0 4')
@@ -99,12 +100,15 @@ class EKF():
                     mind = dist
                     ind = i
         feat = feat_map[ind:ind+1]
-        return feat
+        feat_array = []
+        feat_array.append(feat.item(0))
+        feat_array.append(feat.item(1))
+        return feat_array
 
-    def get_bearing(self, t):
-        y_0 = self.y[0, t]
-        y_1 = self.y[1, t]
-        x_2 = self.x[2, t]
+    def get_bearing(self):
+        y_0 = self.bot.y[0]
+        y_1 = self.bot.y[1]
+        x_2 = self.bot.states[2]
 
         bearing = y_0 * np.cos(y_1 + x_2)
         return bearing
@@ -128,52 +132,55 @@ class EKF():
                                         (mf[1] - mup[1]),
                                         2))],
                                        [(math.atan2(
-                                           self.mf[1] - self.mup[0],
-                                           self.mf[0] - self.mup[0]))]])
+                                           mf[1] - mup[0],
+                                           mf[0] - mup[0]))]])
 
     def run_simulation(self):
 
         for t in range(1, len(self.T)):
+            current_state = copy.copy(self.bot.states)
+            self.bot_states.append(current_state)
             self.bot.update(self.u, self.dt)
-            self.bot_states.append(self.bot.states)
+            # Keep storing these for plotting
 
             self.bot.update_estimate(self.u, self.dt)
-            self.bot_mup_S.append(self.bot.mup)
+            current_mup = copy.copy(self.bot.mup)
+            self.bot_mup_S.append(current_mup)
 
-            nearest_feat = self.closest_feature(self.feat_map, self.x[:, t])
-
-            self.mf.append(nearest_feat)
+            self.mf = self.closest_feature(self.feat_map, self.bot.states)
 
             self.bot.update_measurement(self.mf)
 
             # Extended Kalman Filter Estimation
             # Prediction update
             Gt = np.matrix(
-                [[1, 0, -self.u[0, t] * np.sin(self.mu[2]) * self.dt],
-                 [0, 1, self.u[0, t] * np.cos(self.mu[2]) * self.dt],
+                [[1, 0, -self.u[0] * np.sin(self.bot.mu[2]) * self.dt],
+                 [0, 1, self.u[0] * np.cos(self.bot.mu[2]) * self.dt],
                  [0, 0, 1]])
 
-            Sp = Gt * self.S * Gt.transpose() + self.R
+            Sp = Gt * self.bot.S * Gt.transpose() + self.bot.R
 
             # Linearization
             # Predicted range
-            self.calc_predicted_range(self.mf, self.mup)
+            self.calc_predicted_range(self.mf, self.bot.mup)
 
             # Measurement update
             K = Sp * np.transpose(self.Ht) * la.inv(
-                self.Ht * Sp * np.transpose(self.Ht) + self.Q)
+                self.Ht * Sp * np.transpose(self.Ht) + self.bot.Q)
 
-            self.calc_meas_update(self.mf, self.mup)
+            self.calc_meas_update(self.mf, self.bot.mup)
 
-            I = self.y[:, t].reshape(2, 1) - self.meas_updates
+            meas_upd_arr = np.squeeze(np.asarray(self.meas_updates))
+            I = self.bot.y - meas_upd_arr
             I[1] = np.mod(I[1] + math.pi, 2 * math.pi) - math.pi
             self.Inn.append(I)
 
-            self.mu = (self.mup.reshape(3, 1) + K * I).T
-
+            K_I = K * np.matrix(I).T
+            current_mu = np.matrix(self.bot.mup).T + K_I
+            self.bot.mu = np.asarray(current_mu).flatten()
             # Store results
-            self.mup_S[:, t] = self.mup
-            self.mu_S[:, t] = self.mu
+            current_bot_mu = copy.copy(self.bot.mu)
+            self.mu_S.append(np.asarray(current_bot_mu))
 
             self.plot(t)
 
@@ -184,12 +191,16 @@ class EKF():
         plt.figure(1)
         plt.axis([-4, 6, -1, 7])
         plt.plot(self.feat_map_plot[0], self.feat_map_plot[1], 'ro')
-        plt.plot(self.mf[0, t], self.mf[1, t], 'bs')
-        plt.plot(self.x[0, 0:t], self.x[1, 0:t], 'g^')
-        plt.plot([self.x[0, t], self.x[0, t] + self.get_bearing(t)],
-                 [self.x[1, t], self.x[1, t] + self.get_bearing(t)],
+        plt.plot(self.mf[0], self.mf[1], 'bs')
+        x_states = [state[0] for state in self.bot_states]
+        y_states = [state[1] for state in self.bot_states]
+        plt.plot(x_states, y_states, 'g^')
+        plt.plot([self.bot.states[0], self.bot.states[0] + self.get_bearing()],
+                 [self.bot.states[1], self.bot.states[1] + self.get_bearing()],
                  'r--')
-        plt.plot(self.mup_S[0, 0:t], self.mup_S[1, 0:t], 'b--')
+        mup_xs = [mup[0] for mup in self.mu_S]
+        mup_ys = [mup[1] for mup in self.mu_S]
+        #plt.plot(mup_xs, mup_ys, 'b--')
         plt.show()
         print("step", t)
         plt.pause(0.1)
