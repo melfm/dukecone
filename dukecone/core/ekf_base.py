@@ -36,9 +36,9 @@ class TurtleBot:
         self.states[2] = self.states[2] + u[1] * dt
 
     def update_estimate(self, u, dt):
-        self.mup[0] = self.mu[0] + (u[0] * np.cos(self.mu[2]) * dt)
-        self.mup[1] = self.mu[1] + (u[0] * np.sin(self.mu[2]) * dt)
-        self.mup[2] = self.mu[2] + (u[1] * dt)
+        self.mup[0] = self.mu[0] + u[0] * np.cos(self.mu[2]) * dt
+        self.mup[1] = self.mu[1] + u[0] * np.sin(self.mu[2]) * dt
+        self.mup[2] = self.mu[2] + u[1] * dt
 
     def update_measurement(self, mf):
         # Select a motion disturbance
@@ -82,12 +82,11 @@ class EKF():
 
         # Simulation initializations
         self.mu_S = []
+        self.bot_mup_S = []
         self.mf = []
-        self.mup = []
         self.Inn = []
 
         self.bot_states = []
-        self.bot_mup_S = []
 
     def closest_feature(self, feat_map, state):
         ind = 0
@@ -138,12 +137,13 @@ class EKF():
     def run_simulation(self):
 
         for t in range(1, len(self.T)):
+            # Keep storing these for plotting
             current_state = copy.copy(self.bot.states)
             self.bot_states.append(current_state)
+            # Update state
             self.bot.update(self.u, self.dt)
-            # Keep storing these for plotting
-
             self.bot.update_estimate(self.u, self.dt)
+
             current_mup = copy.copy(self.bot.mup)
             self.bot_mup_S.append(current_mup)
 
@@ -200,7 +200,7 @@ class EKF():
                  'r--')
         mup_xs = [mup[0] for mup in self.mu_S]
         mup_ys = [mup[1] for mup in self.mu_S]
-        #plt.plot(mup_xs, mup_ys, 'b--')
+        plt.plot(mup_xs, mup_ys, 'r.')
         plt.show()
         print("step", t)
         plt.pause(0.1)
