@@ -18,7 +18,7 @@ class EKF_test(unittest.TestCase):
 
 
     def test_basic_setup(self):
-        state_vec = self.ekf_loc.bot.states
+        state_vec = self.ekf_loc.bot.state
         #print('State vec', state_vec)
 
         #print('Control input', self.ekf_loc.u)
