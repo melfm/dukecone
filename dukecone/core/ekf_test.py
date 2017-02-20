@@ -4,8 +4,6 @@ import unittest
 import numpy as np
 
 from ekf_base import EKF
-import pdb
-
 
 class EKF_test(unittest.TestCase):
 
@@ -62,8 +60,7 @@ class EKF_test(unittest.TestCase):
                                msg='Wrong bearing y-component')
 
     def test_state_update(self):
-        # self.ekf_loc.run_simulation()
-        pass
+        self.ekf_loc.run_simulation()
 
     def test_closest_feat(self):
         feature_map = np.matrix('5 5; 3 1 ;-4 5; -2 3; 0 4')

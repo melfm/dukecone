@@ -5,6 +5,9 @@ import math
 from scipy import linalg as la
 import matplotlib.pyplot as plt
 import copy
+from matplotlib.patches import Ellipse
+
+import numpy.random as rnd
 import pdb
 
 
@@ -194,7 +197,7 @@ class EKF():
             # Store results
             current_bot_mu = copy.copy(self.mu)
             self.mu_S.append(np.asarray(current_bot_mu))
-            #self.plot(t)
+            self.plot(t)
 
     def plot(self, t):
         # Plot
@@ -210,9 +213,9 @@ class EKF():
         plt.plot(x_states, y_states, 'g^')
         plt.plot(
             [self.bot.state[0],
-             self.bot.state[0] + self.get_bearing_x(self.bot.state)],
+             self.bot.state[0] + self.get_bearing_x(self.bot.state, self.y)],
             [self.bot.state[1],
-             self.bot.state[1] + self.get_bearing_y(self.bot.state)],
+             self.bot.state[1] + self.get_bearing_y(self.bot.state, self.y)],
             'r--')
         mup_xs = [mup[0] for mup in self.mu_S]
         mup_ys = [mup[1] for mup in self.mu_S]
@@ -221,3 +224,24 @@ class EKF():
         print("timestep", t)
         plt.pause(0.0000001)
         plt.clf()
+
+    def plot_ellipse(self):
+        fig = plt.figure(2)
+        ax = fig.add_subplot(111, aspect='equal')
+
+        eig_val, v = np.linalg.eig(self.S)
+        eigen_val = np.sqrt(eig_val)
+        mup_xs = [mup[0] for mup in self.mu_S]
+        mup_ys = [mup[1] for mup in self.mu_S]
+
+        ell = Ellipse(xy=(self.mu[0], self.mu[1]),
+                      width=eigen_val[0],
+                      height=eigen_val[1],
+                      angle=(self.mu[2]))
+
+        ax.add_artist(ell)
+        ell.set_clip_box(ax.bbox)
+
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 10)
+        plt.show()
