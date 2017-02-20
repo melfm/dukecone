@@ -5,6 +5,7 @@ import math
 from scipy import linalg as la
 import matplotlib.pyplot as plt
 import copy
+import pdb
 
 
 class TurtleBot:
@@ -45,6 +46,7 @@ class EKF():
         self.mu = [0, 0, 0]             # mean
         self.S = 0.1 * np.identity(3)   # Covariance matrix
 
+        # Measurement noise
         q = [0.01, 0.01]
         self.Q = np.diag(q)
 
@@ -73,19 +75,24 @@ class EKF():
         self.mup[2] = self.mu[2] + u[1] * dt
 
     def update_measurement(self, mf, state):
-        # Select a motion disturbance
-        dn = np.random.multivariate_normal([0, 0], self.Q, 1)
         # Determine measurement
-        meas_range = np.sqrt(np.power((mf[0] - state[0]), 2) +
-                             np.power((mf[1] - state[1]), 2)) + dn[0][0]
+        meas_range = np.maximum(0.001,
+                                np.sqrt(np.power((mf[0] - state[0]), 2) +
+                                        np.power((mf[1] - state[1]), 2)))
         meas_bearing = math.atan2(
-            (mf[1] - state[1]),
-            (mf[0] - state[0]))
+                                (mf[1] - state[1]),
+                                (mf[0] - state[0]))
         meas_bearing -= state[2]
-        meas_bearing += dn[0][1]
         self.y = []
         self.y.append(meas_range)
         self.y.append(meas_bearing)
+
+    def add_measurement_noise(self):
+        # Select a motion disturbance
+        dn = np.random.multivariate_normal([0, 0], self.Q, 1)
+
+        self.y[0] += dn[0][0]
+        self.y[1] += dn[0][1]
 
     def closest_feature(self, feat_map, state):
         ind = 0
@@ -103,17 +110,17 @@ class EKF():
         feat_array.append(feat.item(1))
         return feat_array
 
-    def get_bearing_x(self, state):
-        y_0 = self.y[0]
-        y_1 = self.y[1]
+    def get_bearing_x(self, state, y):
+        y_0 = y[0]
+        y_1 = y[1]
         x_2 = state[2]
 
         bearing = y_0 * np.cos(y_1 + x_2)
         return bearing
 
-    def get_bearing_y(self, state):
-        y_0 = self.y[0]
-        y_1 = self.y[1]
+    def get_bearing_y(self, state, y):
+        y_0 = y[0]
+        y_1 = y[1]
         x_2 = state[2]
 
         bearing = y_0 * np.sin(y_1 + x_2)
@@ -153,6 +160,7 @@ class EKF():
             self.mf = self.closest_feature(self.feat_map, self.bot.state)
 
             self.update_measurement(self.mf, self.bot.state)
+            self.add_measurement_noise()
 
             # Extended Kalman Filter Estimation
             # Prediction update
@@ -186,7 +194,7 @@ class EKF():
             # Store results
             current_bot_mu = copy.copy(self.mu)
             self.mu_S.append(np.asarray(current_bot_mu))
-            self.plot(t)
+            #self.plot(t)
 
     def plot(self, t):
         # Plot
