@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
-# Extended Kalman Filter implementation
-
 import numpy as np
 import math
 from scipy import linalg as la
+import matplotlib.pyplot as plt
 import copy
+from matplotlib.patches import Ellipse
+
+import numpy.random as rnd
+import pdb
+
 
 class TurtleBot:
 
@@ -52,8 +56,10 @@ class EKF():
         # Control inputs
         self.u = [1, 0.3]
 
-        # Feature location
-        self.closest_feat_location = []
+        # Feature map
+        self.feat_map = np.matrix('5 5; 3 1 ;-4 5; -2 3; 0 4')
+        # More convenient for plotting
+        self.feat_map_plot = [[5, 3, -4, -2, 0], [5, 1, 5, 3, 4]]
 
         self.Ht = None
         self.meas_updates = None
@@ -90,6 +96,22 @@ class EKF():
 
         self.y[0] += dn[0][0]
         self.y[1] += dn[0][1]
+
+    def closest_feature(self, feat_map, state):
+        ind = 0
+        mind = float('inf')
+        for i in range(0, feat_map.shape[0]):
+            for j in range(feat_map.shape[1]-1):
+                dist = np.sqrt(np.power((feat_map.item(i, j) - state[0]), 2) +
+                               np.power((feat_map.item(i, j+1) - state[1]), 2))
+                if (dist < mind):
+                    mind = dist
+                    ind = i
+        feat = feat_map[ind:ind+1]
+        feat_array = []
+        feat_array.append(feat.item(0))
+        feat_array.append(feat.item(1))
+        return feat_array
 
     def get_bearing_x(self, state, y):
         y_0 = y[0]
@@ -175,3 +197,51 @@ class EKF():
             # Store results
             current_bot_mu = copy.copy(self.mu)
             self.mu_S.append(np.asarray(current_bot_mu))
+            self.plot(t)
+
+    def plot(self, t):
+        # Plot
+        plt.ion()
+
+        plt.figure(1)
+        plt.axis('equal')
+        plt.axis([-4, 7, -3, 8])
+        plt.plot(self.feat_map_plot[0], self.feat_map_plot[1], 'ro')
+        plt.plot(self.mf[0], self.mf[1], 'bs')
+        x_states = [state[0] for state in self.bot_states]
+        y_states = [state[1] for state in self.bot_states]
+        plt.plot(x_states, y_states, 'g^')
+        plt.plot(
+            [self.bot.state[0],
+             self.bot.state[0] + self.get_bearing_x(self.bot.state, self.y)],
+            [self.bot.state[1],
+             self.bot.state[1] + self.get_bearing_y(self.bot.state, self.y)],
+            'r--')
+        mup_xs = [mup[0] for mup in self.mu_S]
+        mup_ys = [mup[1] for mup in self.mu_S]
+        plt.plot(mup_xs, mup_ys, 'r.')
+        plt.show()
+        print("timestep", t)
+        plt.pause(0.0000001)
+        plt.clf()
+
+    def plot_ellipse(self):
+        fig = plt.figure(2)
+        ax = fig.add_subplot(111, aspect='equal')
+
+        eig_val, v = np.linalg.eig(self.S)
+        eigen_val = np.sqrt(eig_val)
+        mup_xs = [mup[0] for mup in self.mu_S]
+        mup_ys = [mup[1] for mup in self.mu_S]
+
+        ell = Ellipse(xy=(self.mu[0], self.mu[1]),
+                      width=eigen_val[0],
+                      height=eigen_val[1],
+                      angle=(self.mu[2]))
+
+        ax.add_artist(ell)
+        ell.set_clip_box(ax.bbox)
+
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 10)
+        plt.show()
