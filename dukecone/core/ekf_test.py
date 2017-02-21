@@ -3,7 +3,8 @@
 import unittest
 import numpy as np
 
-from ekf_base import EKF
+from ekf_simulation import EKF
+
 
 class EKF_test(unittest.TestCase):
 
@@ -19,6 +20,22 @@ class EKF_test(unittest.TestCase):
         self.assertEquals(len(state_vec),
                           3,
                           'state vector mismatch')
+
+    def test_motion_model(self):
+        input_vec = [1, 0.3]
+        dt = 0.1
+        self.ekf_loc.bot.update_state(input_vec, dt)
+        print('state x ' , self.ekf_loc.bot.state[2])
+        self.assertAlmostEquals(self.ekf_loc.bot.state[0],
+                                0.1000,
+                                msg='wrong update state x')
+        self.assertAlmostEquals(self.ekf_loc.bot.state[1],
+                                0.0,
+                                msg='wrong update state y')
+        self.assertAlmostEquals(self.ekf_loc.bot.state[2],
+                                0.0300,
+                                msg='wrong update state theta')
+
 
     def test_measurement_calc(self):
         mf = [3, 1]

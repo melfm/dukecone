@@ -125,7 +125,7 @@ class EKF():
                               mf[0] - mup[0]) - mup[2]
         self.meas_updates = np.matrix([[update_0, update_1]])
 
-    def run_simulation(self):
+    def do_estimation(self):
 
         for t in range(1, len(self.T)):
             # Keep storing these for plotting

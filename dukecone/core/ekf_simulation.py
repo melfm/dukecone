@@ -7,9 +7,6 @@ import matplotlib.pyplot as plt
 import copy
 from matplotlib.patches import Ellipse
 
-import numpy.random as rnd
-import pdb
-
 
 class TurtleBot:
 
@@ -19,14 +16,21 @@ class TurtleBot:
         r = [1e-4, 1e-4, 1e-6]
         self.R = np.diag(r)
 
-    def update(self, u, dt):
+    # keeping update and noise separated
+    # makes testing easier
+    def update_state(self, u, dt):
+        self.state[0] = self.state[
+            0] + u[0] * np.cos(self.state[2]) * dt
+        self.state[1] = self.state[
+            1] + u[0] * np.sin(self.state[2]) * dt
+        self.state[2] = self.state[2] + u[1] * dt
+
+    def add_noise(self):
         # Select a motion disturbance
         e = np.random.multivariate_normal([0, 0, 0], self.R, 1)
-        self.state[0] = self.state[
-            0] + u[0] * np.cos(self.state[2]) * dt + e[0][0]
-        self.state[1] = self.state[
-            1] + u[0] * np.sin(self.state[2]) * dt + e[0][1]
-        self.state[2] = self.state[2] + u[1] * dt + e[0][2]
+        self.state[0] += e[0][0]
+        self.state[1] += e[0][1]
+        self.state[2] += e[0][2]
 
 
 class EKF():
@@ -154,7 +158,9 @@ class EKF():
             current_state = copy.copy(self.bot.state)
             self.bot_states.append(current_state)
             # Update state
-            self.bot.update(self.u, self.dt)
+            self.bot.update_state(self.u, self.dt)
+            self.bot.add_noise()
+
             self.update_estimate(self.u, self.dt)
 
             current_mup = copy.copy(self.mup)
@@ -178,10 +184,10 @@ class EKF():
             # Predicted range
             self.calc_predicted_range(self.mf, self.mup)
 
-            # Measurement update
             K = Sp * np.transpose(self.Ht) * la.inv(
                 self.Ht * Sp * np.transpose(self.Ht) + self.Q)
 
+            # Measurement update
             self.calc_meas_update(self.mf, self.mup)
 
             meas_upd_arr = np.squeeze(np.asarray(self.meas_updates))
@@ -231,8 +237,8 @@ class EKF():
 
         eig_val, v = np.linalg.eig(self.S)
         eigen_val = np.sqrt(eig_val)
-        mup_xs = [mup[0] for mup in self.mu_S]
-        mup_ys = [mup[1] for mup in self.mu_S]
+        #mup_xs = [mup[0] for mup in self.mu_S]
+        #mup_ys = [mup[1] for mup in self.mu_S]
 
         ell = Ellipse(xy=(self.mu[0], self.mu[1]),
                       width=eigen_val[0],
