@@ -1,22 +1,31 @@
 #!/usr/bin/env python
 
-from core import EKF as ekf
+# Import Modules
+from core import ekf_base as ekf
 
+# Import math library
+from math import radians, pi
+import numpy as np
+
+# Import ROS modules and messages
 import rospy
 from std_msgs.msg import String
 from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Vector3
 from dukecone.msg import ObjectLocation
-from math import radians, pi
 
 
+# Define EKFNode class
 class EKFNode():
-
+    # Define initialization
     def __init__(self):
         # Initialize ROS Node
         rospy.init_node('EKFNode', anonymous=True)
 
+        # Create instance of EKF() class
         self.ekf = ekf.EKF()
 
+        # Define subscribers for input and measurements
         bot_cmd_topic = '/cmd_vel_mux/input/navi'
         self.ekf_sub_input = rospy.Subscriber(
                                              bot_cmd_topic,
