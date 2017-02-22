@@ -1,13 +1,10 @@
 #!/usr/bin/env python
+import sys
+sys.path.insert(0, '../core/')
+import ekf_base as ekf
 
-# Import Modules
-from core import ekf_base as ekf
-
-# Import math library
 from math import radians, pi
-import numpy as np
 
-# Import ROS modules and messages
 import rospy
 from std_msgs.msg import String
 from geometry_msgs.msg import Twist

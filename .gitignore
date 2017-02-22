@@ -1,0 +1,5 @@
+*.pyc
+find . -name "*.pyc" -exec git rm -f {} \;
+git rm -r '*.py~'
+
+

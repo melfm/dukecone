@@ -1,18 +1,21 @@
 #!/usr/bin/env python2
-import os
-from copy import deepcopy
-import argparse
 import sys
+import os
+import argparse
 import numpy as np
 import cv2
 
 import tensorflow as tf
-from yolo_cnn_net import Yolo_tf
-
 import rospy
+
+from copy import deepcopy
 from sensor_msgs.msg import Image
 from dukecone.msg import ObjectLocation
 from cv_bridge import CvBridge, CvBridgeError
+
+sys.path.insert(0, '../core/yolo')
+from yolo_cnn_net import Yolo_tf
+
 
 # Model parameters as external flags.
 flags = tf.app.flags
@@ -147,9 +150,9 @@ class YoloNode(object):
 
 
 if __name__ == '__main__':
-    current_dir = os.getcwd()
-    image_dir = current_dir + '/images/'
-    weight_dir = current_dir + '/weights/'
+    parent_dir = os.path.dirname(os.getcwd())
+    image_dir = parent_dir + '/core/yolo/images/'
+    weight_dir = parent_dir + '/core/yolo/weights/'
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
