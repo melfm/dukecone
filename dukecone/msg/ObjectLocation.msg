@@ -4,5 +4,9 @@ int32 y_pos
 int32 width
 int32 height
 
+# Calculated center
+int32 x_center
+int32 y_center
+
 # Distance from the object
 float64 distance

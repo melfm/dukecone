@@ -113,7 +113,10 @@ class YoloNode(object):
         if(detected):
             # Publish the distance and bounding box
             object_topic = self.construct_topic(
-                bounding_box, nearest_object_dist)
+                            bounding_box,
+                            nearest_object_dist,
+                            x_center,
+                            y_center)
             rospy.loginfo(self.pub_img_pos)
             self.pub_img_pos.publish(object_topic)
 
@@ -139,12 +142,14 @@ class YoloNode(object):
         bb_name = 'bounding_box_{0}.jpg'.format(index)
         cv2.imwrite(bb_name, img)
 
-    def construct_topic(self, bounding_box, distance):
+    def construct_topic(self, bounding_box, distance, x_center, y_center):
         obj_loc = ObjectLocation()
         obj_loc.x_pos = bounding_box[0]
         obj_loc.y_pos = bounding_box[1]
         obj_loc.width = bounding_box[2]
         obj_loc.height = bounding_box[3]
+        obj_loc.x_center = x_center
+        obj_loc.y_center = y_center
         obj_loc.distance = distance
         return obj_loc
 

@@ -4,8 +4,10 @@
 
 import numpy as np
 import math
-from scipy import linalg as la
+import matplotlib.pyplot as plt
 import copy
+
+from scipy import linalg as la
 
 
 class TurtleBot:
@@ -24,7 +26,7 @@ class TurtleBot:
         self.state[2] = self.state[2] + u[1] * dt
 
         # Add Gaussian noise to motion
-        add_noise()
+        self.add_noise()
 
     def add_noise(self):
         # Select a motion disturbance
@@ -76,7 +78,8 @@ class EKF():
         self.bot_states = []
 
     def update_input(self, new_input):
-        """ Method to receive input from EKF ROS Wrapper"""
+        # Make sure input makes sense
+        assert(len(new_input) == 2)
         self.u = new_input
 
     def update_estimate(self, u, dt):
@@ -96,6 +99,11 @@ class EKF():
         self.y = []
         self.y.append(meas_range)
         self.y.append(meas_bearing)
+
+    def update_measurement_static(self, bearing, distance):
+        self.y = []
+        self.y.append(distance)
+        self.y.append(bearing)
 
     def add_measurement_noise(self):
         # Select a motion disturbance
@@ -138,23 +146,30 @@ class EKF():
                               mf[0] - mup[0]) - mup[2]
         self.meas_updates = np.matrix([[update_0, update_1]])
 
+    def calc_meas_update_bot(self):
+        # Need this for the turtlebot
+        pass
+
     def do_estimation(self):
 
         for t in range(1, len(self.T)):
+            # All these steps happens inside EKF Node
             # Keep storing these for plotting
-            current_state = copy.copy(self.bot.state)
-            self.bot_states.append(current_state)
+            #current_state = copy.copy(self.bot.state)
+            # self.bot_states.append(current_state)
             # Update state
-            self.bot.update(self.u, self.dt)
-            self.update_estimate(self.u, self.dt)
+            #self.bot.update(self.u, self.dt)
 
-            current_mup = copy.copy(self.mup)
-            self.mup_S.append(current_mup)
+            # I think this should happen here
+            #self.update_estimate(self.u, self.dt)
 
-            self.mf = self.closest_feature(self.feat_map, self.bot.state)
+            #current_mup = copy.copy(self.mup)
+            # self.mup_S.append(current_mup)
 
-            self.update_measurement(self.mf, self.bot.state)
-            self.add_measurement_noise()
+            #self.mf = self.closest_feature(self.feat_map, self.bot.state)
+
+            #self.update_measurement(self.mf, self.bot.state)
+            # self.add_measurement_noise()
 
             # Extended Kalman Filter Estimation
             # Prediction update
@@ -188,3 +203,29 @@ class EKF():
             # Store results
             current_bot_mu = copy.copy(self.mu)
             self.mu_S.append(np.asarray(current_bot_mu))
+
+    def plot(self, t):
+        # Plot
+        plt.ion()
+
+        plt.figure(1)
+        plt.axis('equal')
+        plt.axis([-4, 7, -3, 8])
+        plt.plot(self.feat_map_plot[0], self.feat_map_plot[1], 'ro')
+        plt.plot(self.mf[0], self.mf[1], 'bs')
+        x_states = [state[0] for state in self.bot_states]
+        y_states = [state[1] for state in self.bot_states]
+        plt.plot(x_states, y_states, 'g^')
+        plt.plot(
+            [self.bot.state[0],
+             self.bot.state[0] + self.get_bearing_x(self.bot.state, self.y)],
+            [self.bot.state[1],
+             self.bot.state[1] + self.get_bearing_y(self.bot.state, self.y)],
+            'r--')
+        mup_xs = [mup[0] for mup in self.mu_S]
+        mup_ys = [mup[1] for mup in self.mu_S]
+        plt.plot(mup_xs, mup_ys, 'r.')
+        plt.show()
+        print("timestep", t)
+        plt.pause(0.0000001)
+        plt.clf()
