@@ -1,43 +1,64 @@
 #!/usr/bin/env python
 
-from core import EKF as ekf
+# Import Modules
+from core import ekf_base as ekf
 
+# Import math library
+from math import radians, pi
+import numpy as np
+
+# Import ROS modules and messages
 import rospy
 from std_msgs.msg import String
 from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Vector3
 from dukecone.msg import ObjectLocation
-from math import radians, pi
 
+
+# Define EKFNode class
 class EKFNode():
-
+    # Define initialization
     def __init__(self):
+        # Initialize ROS Node
+        rospy.init_node('EKFNode', anonymous=True)
 
+        # Create instance of EKF() class
         self.ekf = ekf.EKF()
 
-        bot_cmd_topic = 'cmd_vel_mux/input/navi'
+        # Define subscribers for input and measurements
+        bot_cmd_topic = '/cmd_vel_mux/input/navi'
         self.ekf_sub_input = rospy.Subscriber(
                                              bot_cmd_topic,
                                              Twist,
                                              self.bot_input_callback)
-        tf_obj_topic = 'tensorflow/object/location'
+        tf_obj_topic = '/tensorflow/object/location'
         self.ekf_sub_obj = rospy.Subscriber(tf_obj_topic,
                                             ObjectLocation,
                                             self.obj_callback)
 
+    def bot_input_callback(self, data):
+        """ Callback for new Turtlebot inputs"""
+        # Extract velocity data from Twist message
+        vel = data.linear.x
+        omega = data.angular.z
 
-    def bot_input_callback(self):
-        pass
+        # Place data into numpy array
+        new_input = [vel, omega]
 
+        # Send new input to EKF class
+        self.ekf.update_input(new_input)
 
-    def obj_callback(self):
-        pass
+    def obj_callback(self, data):
+        """Callback to obtain position of closest detected object, and then send to EKF for measurement update"""
+        obj_x = data.x_pos
+        obj_y = data.y_pos
+        obj_dist = data.distance
 
 
 if __name__ == '__main__':
-
     ekf_node = EKFNode()
 
     try:
         rospy.spin()
     except KeyboardInterrupt:
-        print("bye bye")
+        print("Shutting Down")

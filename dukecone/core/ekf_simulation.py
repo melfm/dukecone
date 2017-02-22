@@ -237,8 +237,8 @@ class EKF():
 
         eig_val, v = np.linalg.eig(self.S)
         eigen_val = np.sqrt(eig_val)
-        #mup_xs = [mup[0] for mup in self.mu_S]
-        #mup_ys = [mup[1] for mup in self.mu_S]
+        # mup_xs = [mup[0] for mup in self.mu_S]
+        # mup_ys = [mup[1] for mup in self.mu_S]
 
         ell = Ellipse(xy=(self.mu[0], self.mu[1]),
                       width=eigen_val[0],
