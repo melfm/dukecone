@@ -25,7 +25,7 @@ class EKF_test(unittest.TestCase):
         input_vec = [1, 0.3]
         dt = 0.1
         self.ekf_loc.bot.update_state(input_vec, dt)
-        print('state x ' , self.ekf_loc.bot.state[2])
+        print('state x ', self.ekf_loc.bot.state[2])
         self.assertAlmostEquals(self.ekf_loc.bot.state[0],
                                 0.1000,
                                 msg='wrong update state x')
@@ -35,7 +35,6 @@ class EKF_test(unittest.TestCase):
         self.assertAlmostEquals(self.ekf_loc.bot.state[2],
                                 0.0300,
                                 msg='wrong update state theta')
-
 
     def test_measurement_calc(self):
         mf = [3, 1]
@@ -97,6 +96,7 @@ class EKF_test(unittest.TestCase):
         state = [-3,  3, 0]
         res = self.ekf_loc.closest_feature(feature_map, state)
         np.testing.assert_array_equal(res, [-2, 3])
+
 
 if __name__ == '__main__':
     unittest.main()

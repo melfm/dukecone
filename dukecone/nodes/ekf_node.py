@@ -49,7 +49,9 @@ class EKFNode():
         self.ekf.update_input(new_input)
 
     def obj_callback(self, data):
-        pass
+        """Callback to obtain position of closest detected object, and then send to EKF for measurement update"""
+        obj_x = data.x_pos
+        obj_y = data.y_pos
 
 
 if __name__ == '__main__':

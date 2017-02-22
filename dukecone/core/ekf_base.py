@@ -40,7 +40,7 @@ class EKF():
 
         self.bot = TurtleBot()
         # Simulation parameters
-        self.x0 = [0, 0, 0]             # initial state
+        self.x0 = x0                    # initial state
         self.n = len(self.x0)           # number of states
         self.Tf = 20
         self.dt = 0.1
@@ -51,7 +51,7 @@ class EKF():
         self.mup = [0, 0, 0]
         self.y = []
 
-        self.mu = [0, 0, 0]             # mean
+        self.mu = mu                    # mean
         self.S = 0.1 * np.identity(3)   # Covariance matrix
 
         # Measurement noise
