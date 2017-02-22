@@ -7,6 +7,7 @@ import math
 from scipy import linalg as la
 import copy
 
+
 class TurtleBot:
 
     def __init__(self):
@@ -15,14 +16,22 @@ class TurtleBot:
         r = [1e-4, 1e-4, 1e-6]
         self.R = np.diag(r)
 
-    def update(self, u, dt):
+    def update_state(self, u, dt):
+        self.state[0] = self.state[
+            0] + u[0] * np.cos(self.state[2]) * dt
+        self.state[1] = self.state[
+            1] + u[0] * np.sin(self.state[2]) * dt
+        self.state[2] = self.state[2] + u[1] * dt
+
+        # Add Gaussian noise to motion
+        add_noise()
+
+    def add_noise(self):
         # Select a motion disturbance
         e = np.random.multivariate_normal([0, 0, 0], self.R, 1)
-        self.state[0] = self.state[
-            0] + u[0] * np.cos(self.state[2]) * dt + e[0][0]
-        self.state[1] = self.state[
-            1] + u[0] * np.sin(self.state[2]) * dt + e[0][1]
-        self.state[2] = self.state[2] + u[1] * dt + e[0][2]
+        self.state[0] += e[0][0]
+        self.state[1] += e[0][1]
+        self.state[2] += e[0][2]
 
 
 class EKF():
@@ -65,6 +74,10 @@ class EKF():
         self.Inn = []
 
         self.bot_states = []
+
+    def update_input(self, new_input):
+        """ Method to receive input from EKF ROS Wrapper"""
+        self.u = new_input
 
     def update_estimate(self, u, dt):
         self.mup[0] = self.mu[0] + u[0] * np.cos(self.mu[2]) * dt

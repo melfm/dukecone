@@ -37,10 +37,18 @@ class EKFNode():
                                             self.obj_callback)
 
     def bot_input_callback(self, data):
-        pass
+        """ Callback for new Turtlebot inputs"""
+        # Extract velocity data from Twist message
+        vel = data.linear.x
+        omega = data.angular.z
+
+        # Place data into numpy array
+        new_input = [vel, omega]
+
+        # Send new input to EKF class
+        self.ekf.update_input(new_input)
 
     def obj_callback(self, data):
-        pass
 
 
 if __name__ == '__main__':
