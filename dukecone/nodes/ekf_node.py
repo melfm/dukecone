@@ -49,10 +49,10 @@ class EKFNode():
         self.ekf.update_input(new_input)
 
     def obj_callback(self, data):
+        pass
 
 
 if __name__ == '__main__':
-
     ekf_node = EKFNode()
 
     try:
