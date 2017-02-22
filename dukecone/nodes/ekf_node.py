@@ -52,6 +52,7 @@ class EKFNode():
         """Callback to obtain position of closest detected object, and then send to EKF for measurement update"""
         obj_x = data.x_pos
         obj_y = data.y_pos
+        obj_dist = data.distance
 
 
 if __name__ == '__main__':
