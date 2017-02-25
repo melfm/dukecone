@@ -35,7 +35,7 @@ class YoloNode(object):
     def __init__(self, yolo):
         self.bridge = CvBridge()
         self.image_rgb_topic = "/camera/rgb/image_color"
-        self.image_depth_topic = "/camera/depth_registered/image"
+        self.image_depth_topic = "/camera/depth_registered/image_raw"
         self.rgb_image_sub = rospy.Subscriber(self.image_rgb_topic,
                                               Image,
                                               self.image_callback)
@@ -101,7 +101,8 @@ class YoloNode(object):
                     break
 
                 center_pixel_depth = image_depth[y_center, x_center]
-                distance = float(center_pixel_depth)
+                # convert to mm
+                distance = float(center_pixel_depth) * 0.001
                 print("Distance of object {} from target : \
                       {}".format(i, distance))
 
@@ -189,7 +190,7 @@ if __name__ == '__main__':
     yolonode = YoloNode(yolo)
     rospy.init_node('YoloNode', anonymous=True)
     # what rate do we want?
-    #r = rospy.Rate(50)
+    r = rospy.Rate(10)
 
     try:
         rospy.spin()
