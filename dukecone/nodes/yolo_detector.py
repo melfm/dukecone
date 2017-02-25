@@ -190,9 +190,10 @@ if __name__ == '__main__':
     yolonode = YoloNode(yolo)
     rospy.init_node('YoloNode', anonymous=True)
     # what rate do we want?
-    r = rospy.Rate(10)
+    r = rospy.Rate(1)
 
     try:
         rospy.spin()
+        r.sleep()
     except KeyboardInterrupt:
         print("Shutting down")
