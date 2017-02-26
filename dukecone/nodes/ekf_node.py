@@ -9,6 +9,7 @@ import time
 from geometry_msgs.msg import Twist, Vector3
 from dukecone.msg import ObjectLocation
 
+
 class EKFNode():
 
     def __init__(self):
@@ -23,14 +24,20 @@ class EKFNode():
         self.ekf_sub_obj = rospy.Subscriber(tf_obj_topic,
                                             ObjectLocation,
                                             self.obj_callback)
+        # inputs
+        incoming_measure_top = '/dukecone/estimates/meas'
 
+        # estimates
         mup_estimate_top = '/dukecone/estimates/mup'
-        bot_state_top = '/dukecone/estimates/states'
+        bot_state_top = '/dukecone/estimates/state'
         prior_mean_top = '/dukecone/estimates/mean'
         covariance_S_top = '/dukecone/estimates/covariance'
         obj_coords_top = '/dukecone/estimates/obj_2dcoord'
 
-        incoming_measure_top = '/dukecone/estimates/meas'
+        self.pub_incoming_meas = rospy.Publisher(
+                                    incoming_measure_top,
+                                    Vector3,
+                                    queue_size=1)
 
         self.pub_mup_est = rospy.Publisher(
                                 mup_estimate_top,
@@ -41,11 +48,6 @@ class EKFNode():
                                 bot_state_top,
                                 Vector3,
                                 queue_size=1)
-
-        self.pub_incoming_meas = rospy.Publisher(
-                                    incoming_measure_top,
-                                    Vector3,
-                                    queue_size=1)
 
         # For now we are using static commands
         self.bot_linear_x = 0.1
@@ -81,6 +83,12 @@ class EKFNode():
         self.ekf.set_measurement(self.feat_range,
                                  self.feat_bearing)
 
+        # TODO remove this from here, it should be
+        # called inside the input callback which
+        # atm is not being called
+        self.ekf.update_input([0.1, 0])
+        self.run_estimator()
+
     def make_measure_topic(self, input_y):
         measure_msg = Vector3()
         measure_msg.x = input_y[0]
@@ -89,16 +97,34 @@ class EKFNode():
 
         return measure_msg
 
+    def make_estimate_topics(self, states, mup):
+        states_msg = Vector3()
+        states_msg.x = states[0]
+        states_msg.y = states[1]
+        states_msg.z = states[2]
 
-    def calculate_bearing(self, x_center, y_center):
-        pass
+        mup_msg = Vector3()
+        mup_msg.x = mup[0]
+        mup_msg.y = mup[1]
+        mup_msg.z = mup[2]
+
+        return states_msg, mup_msg
 
     def run_estimator(self):
+        # this needs to be called
+        # when there is input
         self.ekf.do_estimation()
+
+        # publish measurements
+        # rospy.loginfo(self.pub_incoming_meas)
+        pub_meas_msg = self.make_measure_topic(self.ekf.y)
+        self.pub_incoming_meas.publish(pub_meas_msg)
+
         # publish estimates
-        rospy.loginfo(self.pub_incoming_meas)
-        pub_meas_obj = self.make_measure_topic(self.ekf.y)
-        self.pub_incoming_meas.publish(pub_meas_obj)
+        pub_state_msg, pub_mup_msg = self.make_estimate_topics(
+            self.ekf.bot.state, self.ekf.mup)
+        self.pub_state_est.publish(pub_state_msg)
+        self.pub_mup_est.publish(pub_mup_msg)
 
 
 if __name__ == '__main__':
@@ -111,8 +137,8 @@ if __name__ == '__main__':
         ekf_node.run_estimator()
         rate.sleep()
         counter += 1
+        # after some time do some plotting
         if(counter == 1000):
             ekf_node.ekf.plot()
-            time.sleep(10)
-            print('restarting')
-            counter = 0
+            time.sleep(20)
+            sys.exit()

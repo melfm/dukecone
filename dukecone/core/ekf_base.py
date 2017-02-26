@@ -15,7 +15,7 @@ class TurtleBot:
     def __init__(self):
         self.state = []
 
-        r = [1e-4, 1e-4, 1e-6]
+        r = [1e-5, 1e-5, 1e-8]
         self.R = np.diag(r)
 
     def update_state(self, u, dt):
@@ -174,14 +174,14 @@ class EKF():
 
     def plot(self):
         # Plot
-        plt.ion()
-        plt.figure(1)
-        plt.axis('equal')
-        plt.axis([-1, 1, -1, 3])
+        #plt.ion()
+        fig = plt.figure(1)
+        #plt.axis('equal')
+        plt.axis([0, 3, -0.5, 0.5])
         plt.plot(self.mf[0], self.mf[1], 'bs')
         x_states = [state[0] for state in self.bot_states]
         y_states = [state[1] for state in self.bot_states]
-        plt.plot(x_states, y_states, 'g^')
+        plt.plot(x_states, y_states, 'r--')
         plt.plot(
             self.bot.state[0],
             self.bot.state[1],
@@ -194,6 +194,7 @@ class EKF():
 
         plt.plot(mu_xs, mu_ys, 'r.')
         plt.plot(mup_xs, mup_ys, 'b--')
-        plt.show()
-        plt.pause(0.0000001)
-        plt.clf()
+        #plt.show()
+        #plt.pause(0.0000001)
+        #plt.clf()
+        fig.savefig('SmellyEKF.png')

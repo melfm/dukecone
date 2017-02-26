@@ -18,21 +18,22 @@ class Plotter:
                                                      self.measure_callback)
 
     def measure_callback(self, data):
-        print('Inside callback')
         plt.ion()
         plt.figure(2)
-        plt.axis('equal')
+        plt.axis([0, 500, 0, 3])
         print(data.x, data.y)
         plt.plot(self.counter, data.x, 'ro')
-        #plt.plot(data.y, 'b--')
+        plt.plot(data.y, 'b--')
         plt.show()
-        plt.pause(0.000001)
+        plt.pause(0.0000001)
         self.counter += 1
 
 
 if __name__ == '__main__':
     plotternode = Plotter()
     rospy.init_node('Plotter', anonymous=True)
+
+    r = rospy.Rate(50)
 
     try:
         rospy.spin()
