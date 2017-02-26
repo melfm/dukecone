@@ -10,7 +10,6 @@ import sys
 
 from scipy import linalg as la
 
-
 class TurtleBot:
 
     def __init__(self):
@@ -56,7 +55,7 @@ class EKF():
         self.S = S                      # Covariance matrix
 
         # Measurement noise
-        q = [0.1, 0.1]
+        q = [0.01, 0.01]
         self.Q = np.diag(q)
 
         # Define measurement matrix
@@ -67,7 +66,7 @@ class EKF():
 
         self.meas_updates = None
 
-        self.measurement_update = False
+        self.measure_needs_update = False
 
         # Simulation initializations
         self.mu_S = []
@@ -87,9 +86,9 @@ class EKF():
         self.mup[1] = self.mu[1] + u[0] * np.sin(self.mu[2]) * dt
         self.mup[2] = self.mu[2] + u[1] * dt
 
-    def update_measurement(self, feat_range, feat_bearing):
+    def set_measurement(self, feat_range, feat_bearing):
         self.y = [feat_range, feat_bearing]
-        self.measurement_update = True
+        self.measure_needs_update = True
 
     def calc_Ht(self, mf, mup):
         # predicted range
@@ -103,12 +102,30 @@ class EKF():
                               -(mf[0] - mup[0]) / np.power(rp, 2),
                               -1]])
 
-    def calc_meas_update(self, mf, mup):
+    def process_measurements(self, mf, mup):
+        # Calculate range
         update_0 = np.sqrt(np.power((mf[0] - mup[0]), 2) +
                            np.power((mf[1] - mup[1]), 2))
         update_1 = math.atan2(mf[1] - mup[1],
                               mf[0] - mup[0]) - mup[2]
         self.meas_updates = np.matrix([[update_0, update_1]])
+
+    def update_measurement(self, h, Sp):
+        # Measurement update
+        K = Sp * np.transpose(self.Ht) * la.inv(
+            self.Ht * Sp * np.transpose(self.Ht) + self.Q)
+        assert(K.shape == (3,2))
+
+        I = self.y - h
+        # wrap angle
+        I[1] = np.mod(I[1] + math.pi, 2 * math.pi) - math.pi
+        # store for plotting
+        self.Inn.append(I)
+
+        current_mu = np.matrix(self.mup).T + (K * np.matrix(I).T)
+        assert(current_mu.shape == (3,1))
+        self.mu = np.asarray(current_mu).flatten()
+        self.S = (np.identity(self.n) - K * self.Ht) * Sp
 
     def do_estimation(self):
 
@@ -120,13 +137,8 @@ class EKF():
 
         # Extended Kalman Filter Estimation
         # ---------------------------------------------
-        # Prediction update
-
-        # Calculate predicted mu
+        # Prediction update (mup)
         self.update_estimate(self.u, self.dt)
-
-        current_mup = copy.copy(self.mup)
-        self.mup_S.append(current_mup)
 
         # Linearization of motion model
         Gt = np.matrix(
@@ -137,38 +149,27 @@ class EKF():
         # Calculate predicted covariance
         Sp = Gt * self.S * Gt.transpose() + self.bot.R
 
-        # Measurement update
-        # ---------------------------------------------
-        # Calculate measured distance of object
+        # Linearization of measurement model
         self.calc_Ht(self.mf, self.mup)
 
-        # Calculate Kalman gain
-        K = Sp * np.transpose(self.Ht) * la.inv(
-            self.Ht * Sp * np.transpose(self.Ht) + self.Q)
-
+        # Measurement update
+        # ---------------------------------------------
         # update if we have a new measurement
-        if (self.measurement_update):
-
-            self.calc_meas_update(self.mf, self.mup)
-
-            meas_upd_arr = np.squeeze(np.asarray(self.meas_updates))
-            I = self.y - meas_upd_arr
-            I[1] = np.mod(I[1] + math.pi, 2 * math.pi) - math.pi
-            self.Inn.append(I)
-            K_I = K * np.matrix(I).T
-            current_mu = np.matrix(self.mup).T + K_I
-
-            self.mu = np.asarray(current_mu).flatten()
-            self.S = (np.identity(self.n) - K * self.Ht) * Sp
-            self.measurement_update = False
+        if (self.measure_needs_update):
+            self.process_measurements(self.mf, self.mup)
+            h = np.squeeze(np.asarray(self.meas_updates))
+            self.update_measurement(h, Sp)
+            self.measure_needs_update = False
         else:
             # don't have measurement
             self.mu = self.mup
             self.S = Sp
 
         # Store results
+        current_mup = copy.copy(self.mup)
+        self.mup_S.append(current_mup)
+
         current_bot_mu = copy.copy(self.mu)
-        print('mu  x :', self.mu[0])
         self.mu_S.append(np.asarray(current_bot_mu))
 
     def plot(self):
@@ -196,8 +197,3 @@ class EKF():
         plt.show()
         plt.pause(0.0000001)
         plt.clf()
-
-        # plt.figure(2)
-        # plt.plot(self.Inn)
-        # plt.show()
-        # plt.pause(0.0000001)
