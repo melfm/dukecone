@@ -71,7 +71,7 @@ class EKF():
         # Simulation initializations
         self.mu_S = []
         self.mup_S = []
-        self.mf = [2.5, 0]
+        self.mf = [2, 0]
         self.Inn = []
 
         self.bot_states = []
@@ -174,9 +174,9 @@ class EKF():
 
     def plot(self):
         # Plot
-        #plt.ion()
+        plt.ion()
         fig = plt.figure(1)
-        #plt.axis('equal')
+        plt.axis('equal')
         plt.axis([0, 3, -0.5, 0.5])
         plt.plot(self.mf[0], self.mf[1], 'bs')
         x_states = [state[0] for state in self.bot_states]
@@ -194,7 +194,7 @@ class EKF():
 
         plt.plot(mu_xs, mu_ys, 'r.')
         plt.plot(mup_xs, mup_ys, 'b--')
-        #plt.show()
-        #plt.pause(0.0000001)
-        #plt.clf()
-        fig.savefig('SmellyEKF.png')
+        plt.show()
+        plt.pause(0.0000001)
+        plt.clf()
+        #fig.savefig('SmellyEKF.png')

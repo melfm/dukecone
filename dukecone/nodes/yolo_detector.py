@@ -4,6 +4,7 @@ import os
 import argparse
 import numpy as np
 import cv2
+import math
 
 import tensorflow as tf
 import rospy
@@ -118,8 +119,42 @@ class YoloNode(object):
                             nearest_object_dist,
                             x_center,
                             y_center)
+            object_dist = [x_center, y_center]
+            self.calculate_bearing(object_dist, nearest_object_dist)
             rospy.loginfo(self.pub_img_pos)
             self.pub_img_pos.publish(object_topic)
+
+    def calculate_bearing(self, object_center, depth):
+
+        # per diagonal
+        camera_horizontal_fov = (57/2.0)
+        camera_vertical_fov = (43/2.0)
+
+        image_width = 640/2.0
+        image_height = 480/2.0
+
+        detected_obj_x = object_center[0]
+        detected_obj_y = object_center[1]
+
+        diagonal_dist = np.sqrt(np.power(image_width, 2) +
+                                np.power(image_height, 2))
+        angle_per_pixel = camera_horizontal_fov / float(diagonal_dist)
+
+        angle_per_pixel_ver = camera_vertical_fov / float(diagonal_dist)
+
+        angle_per_pixel += angle_per_pixel_ver
+
+        # using trigonometry calculate bearing
+
+        adjacent = math.fabs(image_height - detected_obj_y)
+        opposite = math.fabs((image_width) - detected_obj_x)
+
+        print('x-y Coord ', object_center)
+
+        bearing_from_dist = np.sqrt(np.power(adjacent, 2) +
+                                    np.power(opposite, 2)) * angle_per_pixel
+
+        print('Bearing w.r.t. 2D image : ', bearing_from_dist)
 
     # use this function to draw the bounding box
     # of the detected object for testing purposes
