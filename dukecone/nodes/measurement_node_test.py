@@ -6,10 +6,7 @@ import unittest
 import os
 import sys
 import argparse
-import cv2
-import numpy as np
-
-import tensorflow as tf
+import pickle
 
 sys.path.insert(0, '../core/yolo')
 from yolo_cnn_net import Yolo_tf
@@ -18,6 +15,7 @@ from yolo_detector import YoloNode
 # -----------------------------------
 # Model parameters as external flags.
 # -----------------------------------
+
 
 class MeasurementTest(unittest.TestCase):
 
@@ -80,9 +78,27 @@ class MeasurementTest(unittest.TestCase):
                                msg='Wrong bearing angle')
 
     def test_depth(self):
-        pass
+        test_rgb_file = self.file_dir + '/image_test2_rgb.jpg'
+        test_depth_file = self.file_dir + '/depth_test2.data'
 
+        detection_res, _ = self.yolo.detect_from_file(test_rgb_file)
+        with open(test_depth_file) as f:
+            depth_image = pickle.load(f)
+
+        self.assertTrue(detection_res)
+        self.assertEqual(len(detection_res), 1, 'wrong number of objects')
+        res = self.detector_node.get_object_2dlocation(0, detection_res)
+        w = res[2]
+        h = res[3]
+        x_center = res[4]
+        y_center = res[5]
+
+        distance_avg = self.detector_node.depth_region(
+            depth_image, y_center, x_center, w, h)
+
+        self.assertAlmostEquals(distance_avg,
+                                1.09225,
+                                msg='Wrong averaged distance')
 
 if __name__ == '__main__':
     unittest.main()
-

@@ -5,13 +5,13 @@ import argparse
 import numpy as np
 import cv2
 import math
+import pickle
 
 import tensorflow as tf
 import rospy
 
 from copy import deepcopy
-from sensor_msgs.msg import Image, PointCloud2
-import sensor_msgs.point_cloud2 as pc2
+from sensor_msgs.msg import Image
 from dukecone.msg import ObjectLocation
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -44,12 +44,12 @@ class YoloNode(object):
                                                 Image,
                                                 self.depth_callback)
 
-
         self.image_depth = None
         self.tf_topic = 'tensorflow/object/location'
         self.pub_img_pos = rospy.Publisher(
             self.tf_topic, ObjectLocation, queue_size=1)
 
+        self.test_mode = False
         self.img_width = None
         self.img_height = None
         self.depth_width = None
@@ -64,24 +64,22 @@ class YoloNode(object):
             results = yolo.detect_from_kinect(cv_image)
             # Get the distance
             if(image_depth_copy is not None):
-                cv2.imwrite('image_testing.jpg', cv_image)
                 self.calculate_distance(results, image_depth_copy)
+                if (self.test_mode):
+                    cv2.imwrite('image_test2_rgb.jpg', cv_image)
         except CvBridgeError as e:
             print(e)
 
     def depth_callback(self, data):
         try:
             cv_depth_image = self.bridge.imgmsg_to_cv2(data, "16UC1")
+            if (self.test_mode):
+                with open('depth_test2.data', 'w') as f:
+                    pickle.dump(cv_depth_image, f)
             self.depth_width, self.depth_height, _ = cv_depth_image.shape
             self.image_depth = cv_depth_image
         except CvBridgeError as e:
             print(e)
-
-    def depth_points_callback(self, data):
-        for p in pc2.read_points(
-                data, field_names=("x", "y", "z"),
-                skip_nans=True):
-            print " x : %f  y: %f  z: %f" % (p[0], p[1], p[2])
 
     def calculate_distance(self, results, image_depth):
         # Only publish if you see a cone and the closest
@@ -106,14 +104,19 @@ class YoloNode(object):
                     break
 
                 center_pixel_depth = image_depth[y_center, x_center]
+                distance_avg = self.depth_region(
+                    image_depth, y_center, x_center, w, h)
                 # convert to mm
                 distance = float(center_pixel_depth) * 0.001
                 print("Distance of object {} from target : \
                       {}".format(i, distance))
 
+                print("Averaged distance of object {} : "
+                      .format(distance_avg))
+
                 #self.draw_bounding_box(results, i)
                 if distance < nearest_object_dist:
-                    nearest_object_dist = distance
+                    nearest_object_dist = distance_avg
                     bounding_box = [x, y, w, h]
 
         if(detected):
@@ -127,6 +130,24 @@ class YoloNode(object):
             self.calculate_bearing(object_dist)
             rospy.loginfo(self.pub_img_pos)
             self.pub_img_pos.publish(object_topic)
+
+    def depth_region(self, depth_map, y_center, x_center, w, h):
+        # grab depths along a strip and take average
+        # go half way
+        starting_width = w/4
+        end_width = w - starting_width
+        x_center = x_center - starting_width
+        pixie_avg = 0.0
+
+        for i in range(starting_width, end_width):
+            assert (depth_map.shape[1] > end_width)
+            assert (depth_map.shape[1] > x_center)
+            pixel_depth = depth_map[y_center, x_center]
+            pixie_avg += pixel_depth
+            x_center += 1
+
+        pixie_avg = (pixie_avg/(end_width - starting_width)) * 0.001
+        return float(pixie_avg)
 
     def calculate_bearing(self, object_center):
 
@@ -156,7 +177,7 @@ class YoloNode(object):
         print('x-y Coord ', object_center)
 
         bearing_from_2d = np.sqrt(np.power(adjacent, 2) +
-                                    np.power(opposite, 2)) * angle_per_pixel
+                                  np.power(opposite, 2)) * angle_per_pixel
 
         print('Bearing w.r.t. 2D image : ', bearing_from_2d)
 
@@ -167,7 +188,7 @@ class YoloNode(object):
     def draw_bounding_box(self, boxes, index):
         img = np.zeros((self.img_width, self.img_height, 3), np.uint8)
         img[:, :] = (255, 0, 0)
-        location = self.get_object_2dlocation(x,y,w,h)
+        location = self.get_object_2dlocation(index, boxes)
         x = location[0]
         y = location[1]
         w = location[2]
@@ -179,7 +200,6 @@ class YoloNode(object):
         cv2.circle(img, (x_center, y_center), 5, (0, 0, 255), -1)
         bb_name = 'bounding_box_{0}.jpg'.format(index)
         cv2.imwrite(bb_name, img)
-
 
     def get_object_2dlocation(self, index, results):
         x = int(results[index][1])
