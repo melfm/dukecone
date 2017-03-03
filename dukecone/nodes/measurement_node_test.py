@@ -19,8 +19,6 @@ from yolo_detector import YoloNode
 # Model parameters as external flags.
 # -----------------------------------
 
-
-import pdb
 class MeasurementTest(unittest.TestCase):
 
     @classmethod
@@ -67,16 +65,22 @@ class MeasurementTest(unittest.TestCase):
 
     def test_bearing(self):
         test_img_file = self.file_dir + '/image_test1.jpg'
-        detection_res = self.yolo.detect_from_file(test_img_file)
+        detection_res, _ = self.yolo.detect_from_file(test_img_file)
 
         # result should contain one object
-        pdb.set_trace()
-        x_center, y_center = self.detector_node.get_object_center(0, detection_res)
-        car_obj_center = [x_center, y_center]
+        self.assertTrue(detection_res)
+        self.assertEqual(len(detection_res), 1, 'wrong number of objects')
+        res = self.detector_node.get_object_2dlocation(0, detection_res)
+        car_obj_center = [res[4], res[5]]
 
-        self.detector_node.calculate_bearing(car_obj_center)
+        bearing_angle = self.detector_node.calculate_bearing(car_obj_center)
 
+        self.assertAlmostEqual(bearing_angle, 6.543126,
+                               places=6,
+                               msg='Wrong bearing angle')
 
+    def test_depth(self):
+        pass
 
 
 if __name__ == '__main__':

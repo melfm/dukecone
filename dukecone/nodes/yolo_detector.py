@@ -93,7 +93,14 @@ class YoloNode(object):
             # for now grab puppy since we cant detect cones
             if(results[i][0] == 'car'):
                 detected = True
-                x_center, y_center = self.get_object_center(i, results)
+                location = self.get_object_2dlocation(i, results)
+                x = location[0]
+                y = location[1]
+                w = location[2]
+                h = location[3]
+                x_center = location[4]
+                y_center = location[5]
+
                 # sanity check
                 if(x_center > 640 or y_center > 480):
                     break
@@ -117,7 +124,7 @@ class YoloNode(object):
                             x_center,
                             y_center)
             object_dist = [x_center, y_center]
-            self.calculate_bearing(object_dist, nearest_object_dist)
+            self.calculate_bearing(object_dist)
             rospy.loginfo(self.pub_img_pos)
             self.pub_img_pos.publish(object_topic)
 
@@ -148,27 +155,25 @@ class YoloNode(object):
 
         print('x-y Coord ', object_center)
 
-        bearing_from_dist = np.sqrt(np.power(adjacent, 2) +
+        bearing_from_2d = np.sqrt(np.power(adjacent, 2) +
                                     np.power(opposite, 2)) * angle_per_pixel
 
-        print('Bearing w.r.t. 2D image : ', bearing_from_dist)
+        print('Bearing w.r.t. 2D image : ', bearing_from_2d)
+
+        return bearing_from_2d
 
     # use this function to draw the bounding box
     # of the detected object for testing purposes
     def draw_bounding_box(self, boxes, index):
         img = np.zeros((self.img_width, self.img_height, 3), np.uint8)
         img[:, :] = (255, 0, 0)
-        x = int(boxes[index][1])
-        y = int(boxes[index][2])
-        w = int(boxes[index][3])//2
-        h = int(boxes[index][4])//2
-        x1 = x - w
-        y1 = y - h
-        x2 = x + w
-        y2 = y + h
-
-        x_center = (x1 + x2) // 2
-        y_center = (y1 + y2) // 2
+        location = self.get_object_2dlocation(x,y,w,h)
+        x = location[0]
+        y = location[1]
+        w = location[2]
+        h = location[3]
+        x_center = location[4]
+        y_center = location[5]
 
         cv2.rectangle(img, (x-w, y-h), (x+w, y+h), (0, 255, 0), 2)
         cv2.circle(img, (x_center, y_center), 5, (0, 0, 255), -1)
@@ -176,8 +181,7 @@ class YoloNode(object):
         cv2.imwrite(bb_name, img)
 
 
-
-    def get_object_center(self, index, results):
+    def get_object_2dlocation(self, index, results):
         x = int(results[index][1])
         y = int(results[index][2])
         w = int(results[index][3])//2
@@ -190,7 +194,7 @@ class YoloNode(object):
         x_center = (x1 + x2) // 2
         y_center = (y1 + y2) // 2
 
-        return x_center, y_center
+        return [x, y, w, h, x_center, y_center]
 
     def construct_topic(self, bounding_box, distance, x_center, y_center):
         obj_loc = ObjectLocation()
