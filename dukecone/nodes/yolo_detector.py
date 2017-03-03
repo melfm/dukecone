@@ -10,13 +10,13 @@ import tensorflow as tf
 import rospy
 
 from copy import deepcopy
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, PointCloud2
+import sensor_msgs.point_cloud2 as pc2
 from dukecone.msg import ObjectLocation
 from cv_bridge import CvBridge, CvBridgeError
 
 sys.path.insert(0, '../core/yolo')
 from yolo_cnn_net import Yolo_tf
-
 
 # Model parameters as external flags.
 flags = tf.app.flags
@@ -44,6 +44,7 @@ class YoloNode(object):
                                                 Image,
                                                 self.depth_callback)
 
+
         self.image_depth = None
         self.tf_topic = 'tensorflow/object/location'
         self.pub_img_pos = rospy.Publisher(
@@ -63,6 +64,7 @@ class YoloNode(object):
             results = yolo.detect_from_kinect(cv_image)
             # Get the distance
             if(image_depth_copy is not None):
+                cv2.imwrite('image_testing.jpg', cv_image)
                 self.calculate_distance(results, image_depth_copy)
         except CvBridgeError as e:
             print(e)
@@ -75,6 +77,12 @@ class YoloNode(object):
         except CvBridgeError as e:
             print(e)
 
+    def depth_points_callback(self, data):
+        for p in pc2.read_points(
+                data, field_names=("x", "y", "z"),
+                skip_nans=True):
+            print " x : %f  y: %f  z: %f" % (p[0], p[1], p[2])
+
     def calculate_distance(self, results, image_depth):
         # Only publish if you see a cone and the closest
         # Loop through all the bounding boxes and find min
@@ -85,18 +93,7 @@ class YoloNode(object):
             # for now grab puppy since we cant detect cones
             if(results[i][0] == 'car'):
                 detected = True
-                x = int(results[i][1])
-                y = int(results[i][2])
-                w = int(results[i][3])//2
-                h = int(results[i][4])//2
-
-                x1 = x - w
-                y1 = y - h
-                x2 = x + w
-                y2 = y + h
-                x_center = (x1 + x2) // 2
-                y_center = (y1 + y2) // 2
-
+                x_center, y_center = self.get_object_center(i, results)
                 # sanity check
                 if(x_center > 640 or y_center > 480):
                     break
@@ -124,11 +121,11 @@ class YoloNode(object):
             rospy.loginfo(self.pub_img_pos)
             self.pub_img_pos.publish(object_topic)
 
-    def calculate_bearing(self, object_center, depth):
+    def calculate_bearing(self, object_center):
 
         # per diagonal
-        camera_horizontal_fov = (57/2.0)
-        camera_vertical_fov = (43/2.0)
+        camera_horizontal_fov = 43/2.0
+        camera_vertical_fov = 57/2.0
 
         image_width = 640/2.0
         image_height = 480/2.0
@@ -177,6 +174,23 @@ class YoloNode(object):
         cv2.circle(img, (x_center, y_center), 5, (0, 0, 255), -1)
         bb_name = 'bounding_box_{0}.jpg'.format(index)
         cv2.imwrite(bb_name, img)
+
+
+
+    def get_object_center(self, index, results):
+        x = int(results[index][1])
+        y = int(results[index][2])
+        w = int(results[index][3])//2
+        h = int(results[index][4])//2
+
+        x1 = x - w
+        y1 = y - h
+        x2 = x + w
+        y2 = y + h
+        x_center = (x1 + x2) // 2
+        y_center = (y1 + y2) // 2
+
+        return x_center, y_center
 
     def construct_topic(self, bounding_box, distance, x_center, y_center):
         obj_loc = ObjectLocation()
