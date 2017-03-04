@@ -15,8 +15,7 @@ from sensor_msgs.msg import Image
 from dukecone.msg import ObjectLocation
 from cv_bridge import CvBridge, CvBridgeError
 
-sys.path.insert(0, '../core/yolo')
-from yolo_cnn_net import Yolo_tf
+from yolo.yolo_cnn_net import Yolo_tf
 
 # Model parameters as external flags.
 flags = tf.app.flags
@@ -229,9 +228,9 @@ class YoloNode(object):
 
 
 if __name__ == '__main__':
-    parent_dir = os.path.dirname(os.getcwd())
-    image_dir = parent_dir + '/core/yolo/images/'
-    weight_dir = parent_dir + '/core/yolo/weights/'
+    parent_dir = sys.path[0]
+    image_dir = parent_dir + '/yolo/images/'
+    weight_dir = parent_dir + '/yolo/weights/'
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -255,7 +254,7 @@ if __name__ == '__main__':
     parser.add_argument('--image_width', type=int, default=480)
     parser.add_argument('--image_height', type=int, default=640)
 
-    FLAGS = parser.parse_args()
+    FLAGS = parser.parse_args(rospy.myargv()[1:])
 
     # Create yolo detector instance
     yolo = Yolo_tf(FLAGS)

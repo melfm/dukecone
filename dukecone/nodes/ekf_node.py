@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
-sys.path.insert(0, '../core/')
-import ekf_base as ekf
+
+import core.ekf_base as ekf
 import rospy
 import numpy as np
 import time

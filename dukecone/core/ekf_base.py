@@ -10,6 +10,7 @@ import sys
 
 from scipy import linalg as la
 
+
 class TurtleBot:
 
     def __init__(self):
@@ -71,7 +72,7 @@ class EKF():
         # Simulation initializations
         self.mu_S = []
         self.mup_S = []
-        self.mf = [2, 0]
+        self.mf = [2.5, 0]
         self.Inn = []
 
         self.bot_states = []
@@ -114,7 +115,7 @@ class EKF():
         # Measurement update
         K = Sp * np.transpose(self.Ht) * la.inv(
             self.Ht * Sp * np.transpose(self.Ht) + self.Q)
-        assert(K.shape == (3,2))
+        assert(K.shape == (3, 2))
 
         I = self.y - h
         # wrap angle
@@ -123,7 +124,7 @@ class EKF():
         self.Inn.append(I)
 
         current_mu = np.matrix(self.mup).T + (K * np.matrix(I).T)
-        assert(current_mu.shape == (3,1))
+        assert(current_mu.shape == (3, 1))
         self.mu = np.asarray(current_mu).flatten()
         self.S = (np.identity(self.n) - K * self.Ht) * Sp
 
@@ -194,7 +195,7 @@ class EKF():
 
         plt.plot(mu_xs, mu_ys, 'r.')
         plt.plot(mup_xs, mup_ys, 'b--')
-        plt.show()
-        plt.pause(0.0000001)
-        plt.clf()
-        #fig.savefig('SmellyEKF.png')
+        # plt.show()
+        # plt.pause(0.0000001)
+        # plt.clf()
+        fig.savefig('SmellyEKF.png')
