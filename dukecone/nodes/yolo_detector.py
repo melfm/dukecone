@@ -1,6 +1,5 @@
 #!/usr/bin/env python2
 import sys
-import os
 import argparse
 import numpy as np
 import cv2
@@ -15,7 +14,7 @@ from sensor_msgs.msg import Image
 from dukecone.msg import ObjectLocation
 from cv_bridge import CvBridge, CvBridgeError
 
-from yolo.yolo_cnn_net import Yolo_tf
+from core.yolo.yolo_cnn_net import Yolo_tf
 
 # Model parameters as external flags.
 flags = tf.app.flags
@@ -229,8 +228,8 @@ class YoloNode(object):
 
 if __name__ == '__main__':
     parent_dir = sys.path[0]
-    image_dir = parent_dir + '/yolo/images/'
-    weight_dir = parent_dir + '/yolo/weights/'
+    image_dir = parent_dir + 'core/yolo/images/'
+    weight_dir = parent_dir + 'core/yolo/weights/'
 
     parser = argparse.ArgumentParser()
     parser.add_argument(

@@ -1,7 +1,7 @@
 <launch>
-  <node pkg="dukecone" type="yolo_detector.py" name="yolo_detector" output="screen"/>  
+  <node pkg="dukecone" type="yolo_detector.py" name="yolo_detector" output="screen" respawn="true"/>
 
-  <node pkg="dukecone" type="ekf_node.py" name="ekf_node" output="screen"/>
+  <node pkg="dukecone" type="ekf_node.py" name="ekf_node" output="screen" respawn="true"/>
 
 </launch>
 
