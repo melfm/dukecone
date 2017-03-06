@@ -1,0 +1,15 @@
+#
+# Definition of all trackable objects
+# Identifier corresponds to Trackable ID set in Tracking Tools
+#
+rigid_bodies:
+    '1':
+        pose: /turtlebot/pose
+        pose2d: /turtlebot/ground_pose
+        child_frame_id: Robot_1/base_link
+        parent_frame_id: world
+    '2':
+        pose: /obj1/pose
+        pose2d: /obj1/ground_pose
+        frame_id: Robot_2/base_link
+        parent_frame_id: world
