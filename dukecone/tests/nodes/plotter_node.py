@@ -72,13 +72,13 @@ class Plotter:
                      self.object_pose[1],
                      'ro')
             plt.show()
-            plt.pause(0.0000001)
+            plt.pause(0.001)
 
 if __name__ == '__main__':
     plotternode = Plotter()
     rospy.init_node('Plotter', anonymous=True)
 
-    r = rospy.Rate(30)
+    r = rospy.Rate(80)
 
     while not rospy.is_shutdown():
         r.sleep()
