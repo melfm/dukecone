@@ -91,8 +91,38 @@ class DrawSquare():
         self.cmd_vel.publish(Twist())
         rospy.sleep(1)
 
+
+class MoveForward():
+
+    def __init__(self):
+        # initiliaze
+        rospy.init_node('moveforward', anonymous=False)
+        rospy.on_shutdown(self.shutdown)
+
+        self.cmd_vel = rospy.Publisher(
+            'cmd_vel_mux/input/navi', Twist, queue_size=10)
+        # 30 HZ
+        r = rospy.Rate(30)
+
+        # let's go forward at 0.2 m/s
+        move_cmd = Twist()
+        move_cmd.linear.x = 0.2
+        move_cmd.angular.z = 0.0
+
+        while not rospy.is_shutdown():
+            # by default angular.z is 0 so setting this isn't required
+            rospy.loginfo("Going Straight")
+            self.cmd_vel.publish(move_cmd)
+            r.sleep()
+
+    def shutdown(self):
+        # stop turtlebot
+        rospy.loginfo("Stop Drawing Squares")
+        self.cmd_vel.publish(Twist())
+        rospy.sleep(1)
+
 if __name__ == '__main__':
     try:
-        DrawCircle()
+        MoveForward()
     except:
         rospy.loginfo("node terminated.")

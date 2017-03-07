@@ -57,8 +57,6 @@ class EKFNode():
                                 Vector3,
                                 queue_size=1)
 
-        # For now we are using static commands
-        self.bot_linear_x = 0.1
         self.feat_x_center = None
         self.feat_y_center = None
         self.feat_range = 0.0
