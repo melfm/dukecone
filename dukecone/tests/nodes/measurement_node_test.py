@@ -8,7 +8,8 @@ import sys
 import argparse
 import pickle
 
-sys.path.insert(0, '../core/yolo')
+sys.path.insert(0, '../../core/yolo')
+sys.path.insert(0, '../../nodes')
 from yolo_cnn_net import Yolo_tf
 from yolo_detector import YoloNode
 
@@ -21,10 +22,10 @@ class MeasurementTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        os.chdir('../testing')
+        os.chdir('../test_data')
         current_dir = os.getcwd()
         cls.file_dir = current_dir
-        os.chdir('../core')
+        os.chdir('../../core')
         current_dir = os.getcwd()
         image_dir = current_dir + '/yolo/images/'
         weight_dir = current_dir + '/yolo/weights/'

@@ -28,9 +28,6 @@ class EKFNode():
         # estimates
         mup_estimate_top = '/dukecone/estimates/mup'
         bot_state_top = '/dukecone/estimates/state'
-        #prior_mean_top = '/dukecone/estimates/mean'
-        #covariance_S_top = '/dukecone/estimates/covariance'
-        #obj_coords_top = '/dukecone/estimates/obj_2dcoord'
 
         # MOCAP subscribers
         bot_mocap_top = '/turtlebot/ground_pose'
@@ -67,8 +64,8 @@ class EKFNode():
         self.feat_range = 0.0
         self.feat_bearing = 0.0
 
-        # Define operating rates for ekf
-        #self.ekf_rate = 50
+        # initial rate - update once the inputs
+        # start coming in
         self.dt = 0
         self.input_timer = True
         self.dt0 = None
@@ -105,7 +102,6 @@ class EKFNode():
             # update ekf dt
             self.ekf.dt = self.dt
 
-        self.ekf.update_input([0.1, 0])
         self.run_estimator()
 
     def obj_callback(self, data):
@@ -117,16 +113,15 @@ class EKFNode():
         self.ekf.set_measurement(self.feat_range,
                                  self.feat_bearing)
 
-
     def bot_mocap_callback(self, data):
         self.bot_mocap_pose = [data.x, data.y, data.theta]
-        # print('bot_mocap_pose:', self.bot_mocap_pose[0],\
-        #                         self.bot_mocap_pose[1],\
-        #                         self.bot_mocap_pose[2])
+        print('bot_mocap_pose:', self.bot_mocap_pose[0],
+              self.bot_mocap_pose[1],
+              self.bot_mocap_pose[2])
 
     def obj1_mocap_callback(self, data):
-        self.mf = [data.x, data.y]
-        # print('mf:', self.mf[0], self.mf[1], self.mf[2])
+        self.mf = [data.x, data.y, data.theta]
+        print('mf:', self.mf[0], self.mf[1], self.mf[2])
 
     def make_measure_topic(self, input_y):
         measure_msg = Vector3()
