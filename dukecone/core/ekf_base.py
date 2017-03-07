@@ -6,7 +6,6 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import copy
-import sys
 
 from scipy import linalg as la
 
@@ -82,10 +81,10 @@ class EKF():
         assert(len(new_input) == 2)
         self.u = new_input
 
-    def update_estimate(self, u, dt):
-        self.mup[0] = self.mu[0] + u[0] * np.cos(self.mu[2]) * dt
-        self.mup[1] = self.mu[1] + u[0] * np.sin(self.mu[2]) * dt
-        self.mup[2] = self.mu[2] + u[1] * dt
+    def update_estimate(self):
+        self.mup[0] = self.mu[0] + self.u[0] * np.cos(self.mu[2]) * self.dt
+        self.mup[1] = self.mu[1] + self.u[0] * np.sin(self.mu[2]) * self.dt
+        self.mup[2] = self.mu[2] + self.u[1] * self.dt
 
     def set_measurement(self, feat_range, feat_bearing):
         self.y = [feat_range, feat_bearing]
@@ -139,7 +138,7 @@ class EKF():
         # Extended Kalman Filter Estimation
         # ---------------------------------------------
         # Prediction update (mup)
-        self.update_estimate(self.u, self.dt)
+        self.update_estimate()
 
         # Linearization of motion model
         Gt = np.matrix(
@@ -175,7 +174,7 @@ class EKF():
 
     def plot(self):
         # Plot
-        plt.ion()
+        # plt.ion()
         fig = plt.figure(1)
         plt.axis('equal')
         plt.axis([0, 3, -0.5, 0.5])

@@ -1,10 +1,8 @@
 #!/usr/bin/env python
-import sys
 
 import core.ekf_base as ekf
 import rospy
 import numpy as np
-import time
 
 from geometry_msgs.msg import Twist, Vector3, Pose2D
 from dukecone.msg import ObjectLocation
@@ -30,9 +28,9 @@ class EKFNode():
         # estimates
         mup_estimate_top = '/dukecone/estimates/mup'
         bot_state_top = '/dukecone/estimates/state'
-        prior_mean_top = '/dukecone/estimates/mean'
-        covariance_S_top = '/dukecone/estimates/covariance'
-        obj_coords_top = '/dukecone/estimates/obj_2dcoord'
+        #prior_mean_top = '/dukecone/estimates/mean'
+        #covariance_S_top = '/dukecone/estimates/covariance'
+        #obj_coords_top = '/dukecone/estimates/obj_2dcoord'
 
         # MOCAP subscribers
         bot_mocap_top = '/turtlebot/ground_pose'
@@ -70,8 +68,11 @@ class EKFNode():
         self.feat_bearing = 0.0
 
         # Define operating rates for ekf
-        self.ekf_rate = 50
-        dt = 1.0/self.ekf_rate
+        #self.ekf_rate = 50
+        self.dt = 0
+        self.input_timer = True
+        self.dt0 = None
+        self.dt1 = None
 
         # Define initial state and prior
         # Assume we have perfect knowledge of prior
@@ -81,15 +82,31 @@ class EKFNode():
         n = len(x0)
         # Define initial covariance
         S = 0.1*np.identity(n)
-        self.ekf = ekf.EKF(x0, mu, S, dt)
+        self.ekf = ekf.EKF(x0, mu, S, self.dt)
 
         # Define MOCAP variables
         self.bot_mocap_pose = []
         self.mf = []
 
     def bot_input_callback(self, data):
-        # TODO:Extract velocity data from Twist message
-        self.ekf.update_input([self.bot_linear_x, 0])
+        bot_linear_x = data.linear.x
+        bot_omega = data.angular.z
+        self.ekf.update_input([bot_linear_x, bot_omega])
+        print('Turtle input ', bot_linear_x, bot_omega)
+        if (self.input_timer):
+            self.dt0 = rospy.get_rostime()
+            self.input_timer = False
+        else:
+            self.dt1 = rospy.get_rostime()
+            self.input_timer = True
+            # update dt
+            self.dt = (self.dt1 - self.dt0).to_sec()
+            print('Updated dt ->', self.dt)
+            # update ekf dt
+            self.ekf.dt = self.dt
+
+        self.ekf.update_input([0.1, 0])
+        self.run_estimator()
 
     def obj_callback(self, data):
         """ Get position of closest detected object"""
@@ -100,11 +117,6 @@ class EKFNode():
         self.ekf.set_measurement(self.feat_range,
                                  self.feat_bearing)
 
-        # TODO remove this from here, it should be
-        # called inside the input callback which
-        # atm is not being called
-        self.ekf.update_input([0.1, 0])
-        self.run_estimator()
 
     def bot_mocap_callback(self, data):
         self.bot_mocap_pose = [data.x, data.y, data.theta]
@@ -165,7 +177,7 @@ if __name__ == '__main__':
         rate.sleep()
         counter += 1
         # after some time do some plotting
-        if(counter == 1000):
-            ekf_node.ekf.plot()
-            time.sleep(20)
-            sys.exit()
+        # if(counter == 1000):
+        ekf_node.ekf.plot()
+        # time.sleep(20)
+        # sys.exit()
