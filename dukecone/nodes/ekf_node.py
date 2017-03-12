@@ -27,6 +27,7 @@ class EKFNode():
 
         # estimates
         mup_estimate_top = '/dukecone/estimates/mup'
+        mu_estimate_top = '/dukecone/estimates/mu'
         bot_state_top = '/dukecone/estimates/state'
 
         # MOCAP subscribers
@@ -49,6 +50,11 @@ class EKFNode():
 
         self.pub_mup_est = rospy.Publisher(
                                 mup_estimate_top,
+                                Vector3,
+                                queue_size=1)
+
+        self.pub_mu_est = rospy.Publisher(
+                                mu_estimate_top,
                                 Vector3,
                                 queue_size=1)
 
@@ -81,13 +87,11 @@ class EKFNode():
 
         # Define MOCAP variables
         self.bot_mocap_pose = []
-        self.mf = []
 
     def bot_input_callback(self, data):
         bot_linear_x = data.linear.x
         bot_omega = data.angular.z
         self.ekf.update_input([bot_linear_x, bot_omega])
-        print('Turtle input ', bot_linear_x, bot_omega)
         if (self.input_timer):
             self.dt0 = rospy.get_rostime()
             self.input_timer = False
@@ -96,7 +100,7 @@ class EKFNode():
             self.input_timer = True
             # update dt
             self.dt = (self.dt1 - self.dt0).to_sec()
-            print('Updated dt ->', self.dt)
+            #print('Updated dt ->', self.dt)
             # update ekf dt
             self.ekf.dt = self.dt
 
@@ -112,14 +116,20 @@ class EKFNode():
                                  self.feat_bearing)
 
     def bot_mocap_callback(self, data):
+        # Robot pose groundtruth
         self.bot_mocap_pose = [data.x, data.y, data.theta]
-        print('bot_mocap_pose:', self.bot_mocap_pose[0],
-              self.bot_mocap_pose[1],
-              self.bot_mocap_pose[2])
+        # print('bot_mocap_pose:', self.bot_mocap_pose[0],
+        #      self.bot_mocap_pose[1],
+        #      self.bot_mocap_pose[2])
 
     def obj1_mocap_callback(self, data):
-        self.mf = [data.x, data.y, data.theta]
-        print('mf:', self.mf[0], self.mf[1], self.mf[2])
+        new_mf = [data.x, data.y]
+        R = np.matrix('0 1; -1 0')
+        mf_enu = (np.asarray(new_mf)).reshape(2, 1)
+        mf_nwu = R * mf_enu
+        updated_mf = np.asarray(mf_nwu).flatten()
+
+        self.ekf.update_feat_mf(updated_mf)
 
     def make_measure_topic(self, input_y):
         measure_msg = Vector3()
@@ -129,18 +139,23 @@ class EKFNode():
 
         return measure_msg
 
-    def make_estimate_topics(self, states, mup):
+    def make_estimate_topics(self, states, mu, mup):
         states_msg = Vector3()
         states_msg.x = states[0]
         states_msg.y = states[1]
         states_msg.z = states[2]
+
+        mu_msg = Vector3()
+        mu_msg.x = mu[0]
+        mu_msg.y = mu[1]
+        mu_msg.z = mu[2]
 
         mup_msg = Vector3()
         mup_msg.x = mup[0]
         mup_msg.y = mup[1]
         mup_msg.z = mup[2]
 
-        return states_msg, mup_msg
+        return states_msg, mu_msg, mup_msg
 
     def run_estimator(self):
         # this needs to be called
@@ -153,9 +168,10 @@ class EKFNode():
         self.pub_incoming_meas.publish(pub_meas_msg)
 
         # publish estimates
-        pub_state_msg, pub_mup_msg = self.make_estimate_topics(
-            self.ekf.bot.state, self.ekf.mup)
+        pub_state_msg, pub_state_mu, pub_mup_msg = self.make_estimate_topics(
+            self.ekf.bot.state, self.ekf.mu, self.ekf.mup)
         self.pub_state_est.publish(pub_state_msg)
+        self.pub_mu_est.publish(pub_state_mu)
         self.pub_mup_est.publish(pub_mup_msg)
 
 
@@ -163,14 +179,7 @@ if __name__ == '__main__':
     rospy.init_node('EKFNode', anonymous=True)
     ekf_node = EKFNode()
     rate = rospy.Rate(50)
-    counter = 0
 
     while not rospy.is_shutdown():
         ekf_node.run_estimator()
         rate.sleep()
-        counter += 1
-        # after some time do some plotting
-        # if(counter == 1000):
-        ekf_node.ekf.plot()
-        # time.sleep(20)
-        # sys.exit()
