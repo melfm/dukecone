@@ -1,129 +1,169 @@
 #!/usr/bin/env python
 
-import rospy
+import rosbag
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-from geometry_msgs.msg import Vector3, Pose2D
 
-class Plotter:
+
+from rosbag_parser import rosbag_parser
+
+bag = rosbag.Bag(
+    "/home/melissafm/Workspace/ME780/turtlydata/plot_bags/ekf_plot_bag.bag")
+
+
+class Vec3Data:
 
     def __init__(self):
+        self.vec3_time = []
+        self.x = []
+        self.y = []
+        self.z = []
 
-        # slightly hacky, replace with time
-        # since we are plotting against time
-        self.counter = 0
-        self.obj_counter = 0
-        incoming_measure_top = '/dukecone/estimates/meas'
-        bot_mocap_top = '/turtlebot/ground_pose'
-        obj_mocap_top = '/obj1/ground_pose'
+    def parse_msg(self, ros_msg, ros_time):
+        self.vec3_time.append(ros_time)
+        self.x.append(ros_msg.x)
+        self.y.append(ros_msg.y)
+        self.z.append(ros_msg.z)
 
-        # EKF topics
-        ekf_mu_top = '/dukecone/estimates/mu'
 
-        #self.incoming_measure_sub = rospy.Subscriber(incoming_measure_top,
-        #                                             Vector3,
-        #                                             self.measure_callback)
+class Pos2Data:
 
-        self.bot_mocap_pose = rospy.Subscriber(bot_mocap_top,
-                                               Pose2D,
-                                               self.bot_pose_callback)
+    def __init__(self):
+        self.vec3_time = []
+        self.x = []
+        self.y = []
+        self.z = []
 
-        self.obj_mocap_pose = rospy.Subscriber(obj_mocap_top,
-                                               Pose2D,
-                                               self.object_pose_callback)
+    def parse_msg(self, ros_msg, ros_time):
+        self.vec3_time.append(ros_time)
+        self.x.append(ros_msg.x)
+        self.y.append(ros_msg.y)
+        self.z.append(ros_msg.theta)
 
-        self.ekf_mu_sub = rospy.Subscriber(ekf_mu_top,
-                                           Vector3,
-                                           self.ekf_mu_callback)
 
-        self.bot_pose = []
-        self.object_pose = []
-        self.ekf_mu = []
+class EstimateData:
 
-        # change directory for saving plots
-        os.chdir('../')
+    def __init__(self):
+        # "/dukecone/estimates/state"
+        self.estimate_bot_pose = Vec3Data()
 
-    def measure_callback(self, data):
-        plt.figure(1)
-        plt.axis([0, 500, 0, 3])
-        print(data.x, data.y)
-        plt.plot(self.counter, data.x, 'ro')
-        plt.plot(data.y, 'b--')
-        plt.draw()
-        self.counter += 1
+        # "/dukecone/estimates/mu"
+        self.estimate_mu = Vec3Data()
 
-    def bot_pose_callback(self, data):
-        bot_x = data.x
-        bot_y = data.y
-        bot_theta = data.theta
+        # "/dukecone/estimates/mup"
+        self.estimate_mup = Vec3Data()
 
-        # apply rotation
-        R = np.matrix('0 1 0; -1 0 0; 0 0 1')
-        bot_state_enu = [bot_x, bot_y, bot_theta]
-        bot_state_enu = (np.asarray(bot_state_enu)).reshape(3, 1)
-        bot_state_nwu = R * bot_state_enu
-        self.bot_pose = bot_state_nwu
+        # "/dukecone/estimates/meas"
+        self.incoming_measure = Vec3Data()
 
-        self.bot_pose = np.asarray(self.bot_pose).flatten()
+    def parse_incoming_measures(self, ros_msg, ros_time):
+        self.incoming_measure.parse_msg(ros_msg, ros_time)
 
-        self.plot_mocap_data()
+    def parse_position_estimate(self, ros_msg, ros_time):
+        self.estimate_pose_pose.parse_msg(ros_msg, ros_time)
 
-    def object_pose_callback(self, data):
-        object_x = data.x
-        object_y = data.y
-        object_pose = [object_x, object_y]
+    def parse_mu_estimate(self, ros_msg, ros_time):
+        self.estimate_mu.parse_msg(ros_msg, ros_time)
 
-        R = np.matrix('0 1; -1 0')
-        object_pose_enu = (np.asarray(object_pose)).reshape(2, 1)
-        object_pose_nwu = R * object_pose_enu
+    def parse_mup_estimate(self, ros_msg, ros_time):
+        self.estimate_mup.parse_msg(ros_msg, ros_time)
 
-        self.object_pose = np.asarray(object_pose_nwu).flatten()
 
-    def ekf_mu_callback(self, data):
-        mu_x = data.x
-        mu_y = data.y
-        mu_theta = data.z
+class MocapData:
 
-        self.ekf_mu = [mu_x, mu_y, mu_theta]
+    def __init__(self):
+        # "/turtlebot/ground_pose"
+        self.position_turtle = Pos2Data()
 
-        # self.plot_ekf_mu()
+        # "/ob1/ground_pose"
+        self.position_object = Pos2Data()
 
-    def plot_mocap_data(self):
+    def parse_position_body(self, ros_msg, ros_time):
+        self.position_turtle.parse_msg(ros_msg, ros_time)
 
-        if (len(self.bot_pose) > 0 and
-                len(self.object_pose) > 0 and
-                len(self.ekf_mu) > 0):
-            # plot both
-            plt.ion()
-            plt.figure(2)
-            plt.axis([-2, 2, -1, 2])
-            plt.plot(self.bot_pose[0],
-                     self.bot_pose[1],
-                     'g^')
-            plt.plot(self.object_pose[0],
-                     self.object_pose[1],
-                     'ro')
-            plt.plot(self.ekf_mu[1],
-                     self.ekf_mu[0],
-                     'bo')
-            plt.draw()
-            plt.show()
+    def parse_position_object(self, ros_msg, ros_time):
+        self.position_object.parse_msg(ros_msg, ros_time)
 
-    def plot_ekf_mu(self):
+    def rotation_helper(self, pose_dim, input_vec_enu):
 
-        if(self.ekf_mu is not None):
-            fig = plt.figure(3)
-            plt.plot(self.ekf_mu[0],
-                     self.ekf_mu[1],
-                     'p--')
-            fig.savefig('test_plots/EKF_mu.png')
+        if (pose_dim == 2):
+            R = np.matrix('0 1; -1 0')
+            input_array_enu = (np.asarray(input_vec_enu)).reshape(2, 1)
+            input_vec_nwu = R * input_array_enu
+            input_vec_nwu = np.asarray(input_vec_nwu).flatten()
+            return input_vec_nwu
+
+        elif (pose_dim == 3):
+            # apply rotation
+            R = np.matrix('0 1 0; -1 0 0; 0 0 1')
+            input_array_enu = (np.asarray(input_vec_enu)).reshape(3, 1)
+            input_vec_nwu = R * input_array_enu
+            input_vec_nwu = np.asarray(input_vec_nwu).flatten()
+            return input_vec_nwu
+        else:
+            print('Wrong input. Dimension has to be 2D or 3D')
+            return
+
+
+def plot_ekf_estimates(est_data):
+
+    # change directory to store in the plot dir
+    os.chdir('../')
+
+    #########################
+    # Plot incoming measures
+    #########################
+    plt.figure()
+    plt.subplot(211)
+    plt.plot(est_data.incoming_measure.vec3_time,
+             est_data.incoming_measure.x,
+             label="Incoming measure y - Range")
+
+    plt.title("Measurement Y-Input to EKF")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Range (m)")
+
+    plt.subplot(212)
+    plt.plot(est_data.incoming_measure.vec3_time,
+             est_data.incoming_measure.y,
+             label="Incoming measure y - Bearing")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Bearing (rad)")
+    plt.savefig("test_plots/measure-y.png")
+
+    plt.subplots_adjust(bottom=0.08, hspace=0.9)
+
+    #########################
+    # Plot ekf estimations
+    #########################
+
+    plt.figure(figsize=(7.0, 7.0))
+    plt.plot(est_data.estimate_mu.x,
+             est_data.estimate_mu.y,
+             label="Estimate mu")
+
+    plt.title("Estimated Target mu 2D space")
+    plt.xlabel("X-position (m)")
+    plt.ylabel("Y-position (m)")
+    plt.savefig("test_plots/estimation.png")
 
 if __name__ == '__main__':
-    plotternode = Plotter()
-    rospy.init_node('Plotter', anonymous=True)
 
-    r = rospy.Rate(20)
+    mocap_data = MocapData()
+    est_data = EstimateData()
 
-    while not rospy.is_shutdown():
-        r.sleep()
+    params = [
+        {"topic": "/turtlebot/ground_pose",
+         "callback": mocap_data.parse_position_body},
+        {"topic": "/obj1/ground_pose",
+         "callback": mocap_data.parse_position_object},
+        {"topic": "/dukecone/estimates/meas",
+         "callback": est_data.parse_incoming_measures},
+        {"topic": "/dukecone/estimates/mu",
+         "callback": est_data.parse_mu_estimate}
+    ]
+
+    rosbag_parser(bag, params)
+    print('Plotting...')
+    plot_ekf_estimates(est_data)
