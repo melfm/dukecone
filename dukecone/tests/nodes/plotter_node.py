@@ -6,9 +6,6 @@ import os
 import matplotlib.pyplot as plt
 from geometry_msgs.msg import Vector3, Pose2D
 
-import pdb
-
-
 class Plotter:
 
     def __init__(self):
@@ -24,7 +21,7 @@ class Plotter:
         # EKF topics
         ekf_mu_top = '/dukecone/estimates/mu'
 
-        # self.incoming_measure_sub = rospy.Subscriber(incoming_measure_top,
+        #self.incoming_measure_sub = rospy.Subscriber(incoming_measure_top,
         #                                             Vector3,
         #                                             self.measure_callback)
 
@@ -48,14 +45,12 @@ class Plotter:
         os.chdir('../')
 
     def measure_callback(self, data):
-        plt.ion()
         plt.figure(1)
         plt.axis([0, 500, 0, 3])
         print(data.x, data.y)
         plt.plot(self.counter, data.x, 'ro')
         plt.plot(data.y, 'b--')
-        plt.show()
-        plt.pause(0.0000001)
+        plt.draw()
         self.counter += 1
 
     def bot_pose_callback(self, data):
@@ -73,7 +68,6 @@ class Plotter:
         self.bot_pose = np.asarray(self.bot_pose).flatten()
 
         self.plot_mocap_data()
-        #self.plot_robot_trajectory()
 
     def object_pose_callback(self, data):
         object_x = data.x
@@ -95,15 +89,6 @@ class Plotter:
 
         # self.plot_ekf_mu()
 
-    def plot_robot_trajectory(self):
-
-        if (self.bot_pose is not None):
-            fig = plt.figure(2)
-            plt.plot(self.bot_pose[0],
-                     self.bot_pose[1],
-                     'g^')
-            fig.savefig('test_plots/Turtlebot_Mocap_Pos.png')
-
     def plot_mocap_data(self):
 
         if (len(self.bot_pose) > 0 and
@@ -111,7 +96,7 @@ class Plotter:
                 len(self.ekf_mu) > 0):
             # plot both
             plt.ion()
-            plt.figure(3)
+            plt.figure(2)
             plt.axis([-2, 2, -1, 2])
             plt.plot(self.bot_pose[0],
                      self.bot_pose[1],
@@ -122,20 +107,17 @@ class Plotter:
             plt.plot(self.ekf_mu[1],
                      self.ekf_mu[0],
                      'bo')
+            plt.draw()
             plt.show()
-            plt.pause(0.00000001)
 
     def plot_ekf_mu(self):
 
         if(self.ekf_mu is not None):
-            fig = plt.figure(1)
+            fig = plt.figure(3)
             plt.plot(self.ekf_mu[0],
                      self.ekf_mu[1],
                      'p--')
             fig.savefig('test_plots/EKF_mu.png')
-
-    def plot_objmeas_overtime(self):
-        pass
 
 if __name__ == '__main__':
     plotternode = Plotter()
