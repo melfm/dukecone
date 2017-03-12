@@ -112,20 +112,23 @@ class YoloNode(object):
                 print("Averaged distance of object {} : "
                       .format(distance_avg))
 
-                #self.draw_bounding_box(results, i)
+                # self.draw_bounding_box(results, i)
                 if distance < nearest_object_dist:
                     nearest_object_dist = distance_avg
                     bounding_box = [x, y, w, h]
 
         if(detected):
             # Publish the distance and bounding box
+            object_dist = [x_center, y_center]
+            bearing = self.calculate_bearing(object_dist)
+
             object_topic = self.construct_topic(
                             bounding_box,
                             nearest_object_dist,
                             x_center,
-                            y_center)
-            object_dist = [x_center, y_center]
-            self.calculate_bearing(object_dist)
+                            y_center,
+                            bearing)
+
             rospy.loginfo(self.pub_img_pos)
             self.pub_img_pos.publish(object_topic)
 
@@ -214,7 +217,8 @@ class YoloNode(object):
 
         return [x, y, w, h, x_center, y_center]
 
-    def construct_topic(self, bounding_box, distance, x_center, y_center):
+    def construct_topic(self, bounding_box, distance, x_center, y_center,
+                        bearing):
         obj_loc = ObjectLocation()
         obj_loc.x_pos = bounding_box[0]
         obj_loc.y_pos = bounding_box[1]
@@ -223,6 +227,7 @@ class YoloNode(object):
         obj_loc.x_center = x_center
         obj_loc.y_center = y_center
         obj_loc.distance = distance
+        obj_loc.bearing = bearing
         return obj_loc
 
 

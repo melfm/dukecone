@@ -10,3 +10,6 @@ int32 y_center
 
 # Distance from the object
 float64 distance
+
+# Bearing of the TurtleBot
+float64 bearing
