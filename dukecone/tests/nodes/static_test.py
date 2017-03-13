@@ -13,15 +13,17 @@ from geometry_msgs.msg import Pose2D
 from dukecone.msg import ObjectLocation
 
 # Define rosbag (all options)
-# bag = rosbag.Bag("/home/pganti/rosbags/dukecone/static_0p85m_yolo.bag")
-bag = rosbag.Bag("/home/pganti/rosbags/dukecone/static_1p3m_yolo.bag")
-# bag = rosbag.Bag("/home/pganti/rosbags/dukecone/static_2p6m_yolo.bag")
-# bag = rosbag.Bag("/home/pganti/rosbags/dukecone/static_12deg_yolo.bag")
-# bag = rosbag.Bag("/home/pganti/rosbags/dukecone/static_22deg_yolo.bag")
-# bag = rosbag.Bag("/home/pganti/rosbags/dukecone/static_27deg_yolo.bag")
-# bag = rosbag.Bag("/home/pganti/rosbags/dukecone/static_n9deg_yolo.bag")
-# bag = rosbag.Bag("/home/pganti/rosbags/dukecone/static_n17deg_yolo.bag")
-# bag = rosbag.Bag(/home/pganti/rosbags/dukecone/static_n25deg_yolo.bag")
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_0p85m_yolo.bag"
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_2p6m_yolo.bag"
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_1p3m_yolo.bag"
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_12deg_yolo.bag"
+bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_22deg_yolo.bag"
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_27deg_yolo.bag"
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_n9deg_yolo.bag"
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_n17deg_yolo.bag"
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_n25deg_yolo.bag"
+
+bag = rosbag.Bag(bag_topic)
 
 class ObjLocationData:
 
@@ -103,16 +105,19 @@ class MocapData:
         self.obj1_position.parse_msg(ros_msg, ros_time)
 
 def run_tests(mocap_data, tensorflow_data):
+    # Make tensorflow_data.theta negative. TODO: Fix in YOLO Detector
+    neg_bearing = (-1.0*np.asarray(tensorflow_data.obj1_location.bearing)).tolist()
+    
     # Average all info
     turtlebot_x_avg = np.mean(mocap_data.turtlebot_pose.x)
     turtlebot_y_avg = np.mean(mocap_data.turtlebot_pose.y)
-    turtlebot_theta_avg = np.mean(mocap_data.turtlebot_pose.y)
+    turtlebot_theta_avg = np.mean(mocap_data.turtlebot_pose.theta)
 
     obj1_x_avg = np.mean(mocap_data.obj1_position.x)
     obj1_y_avg = np.mean(mocap_data.obj1_position.y)
 
     obj1_range_avg = np.mean(tensorflow_data.obj1_location.range)
-    obj1_bearing_avg = np.mean(tensorflow_data.obj1_location.bearing)
+    obj1_bearing_avg = np.mean(neg_bearing)
 
     # Calculate comparison
     calc_range = np.sqrt(np.power((obj1_x_avg - turtlebot_x_avg), 2)
@@ -122,12 +127,15 @@ def run_tests(mocap_data, tensorflow_data):
                    - turtlebot_theta_avg
     calc_bearing = calc_bearing*180.0/math.pi
     
+    print('Statistics for bag:', bag_topic)
+    
     print('------------------------------------')
     print('Average Values')
     print('------------------------------------')
-    print('Calculated Range: ', calc_range)
-    print('Measured Range: ', obj1_range_avg)
-    print('Calculated Bearing: ', calc_bearing)
+    print('Calculated Range:', calc_range)
+    print('Measured Range:', obj1_range_avg)
+    print('MOCAP Theta:', turtlebot_theta_avg*180.0/math.pi)
+    print('Calculated Bearing:', calc_bearing)
     print('Measured Bearing:', obj1_bearing_avg)
     print('-------------------------------------')
     
@@ -140,25 +148,25 @@ def run_tests(mocap_data, tensorflow_data):
     obj1_y_var = np.var(mocap_data.obj1_position.y)
     
     obj1_range_var = np.var(tensorflow_data.obj1_location.range)
-    obj1_bearing_var = np.var(tensorflow_data.obj1_location.bearing)
+    obj1_bearing_var = np.var(neg_bearing)
 
     print('Variance For Each List')
     print('------------------------------------')
-    print('Turtlebot X Variance: ', turtlebot_x_var)
-    print('Turtlebot Y Variance: ', turtlebot_y_var)
-    print('Turtlebot Theta Variance: ', turtlebot_theta_var)
-    print('Object 1 X Variance: ', obj1_x_var)
-    print('Object 1 Y Variance: ', obj1_y_var)
-    print('Object 1 Range Variance: ', obj1_range_var)
-    print('Object 1 Bearing Variance: ', obj1_bearing_var)
+    print('Turtlebot X Variance:', turtlebot_x_var)
+    print('Turtlebot Y Variance:', turtlebot_y_var)
+    print('Turtlebot Theta Variance:', turtlebot_theta_var)
+    print('Object 1 X Variance:', obj1_x_var)
+    print('Object 1 Y Variance:', obj1_y_var)
+    print('Object 1 Range Variance:', obj1_range_var)
+    print('Object 1 Bearing Variance:', obj1_bearing_var)
     print('------------------------------------')
     
     # Calculate variance of measurements with respect to MOCAP ground truth
     # Treat calc_range and calc_bearing as the mean values
     var_range_comp = sum([(r_i - calc_range)**2 for r_i in tensorflow_data.obj1_location.range]) \
                     / (len(tensorflow_data.obj1_location.range) - 1)
-    var_bearing_comp = sum([(th_i - calc_bearing)**2 for th_i in tensorflow_data.obj1_location.bearing]) \
-                       / (len(tensorflow_data.obj1_location.bearing) - 1)
+    var_bearing_comp = sum([(th_i - calc_bearing)**2 for th_i in neg_bearing]) \
+                       / (len(neg_bearing) - 1)
     
     # Print comparison values
     print('Variance for Measured Values wrt Ground Truth')
