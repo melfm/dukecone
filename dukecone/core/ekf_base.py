@@ -4,7 +4,7 @@
 
 import numpy as np
 import math
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import copy
 
 from scipy import linalg as la
@@ -93,16 +93,16 @@ class EKF():
         self.y = [feat_range, feat_bearing]
         self.measure_needs_update = True
 
-    def calc_Ht(self, mf, mup):
+    def calc_Ht(self):
         # predicted range
-        rp = np.sqrt((np.power((mf[0] - mup[0]), 2)) +
-                     (np.power((mf[1] - mup[1]), 2)))
+        rp = np.sqrt((np.power((self.mf[0] - self.mup[0]), 2)) +
+                     (np.power((self.mf[1] - self.mup[1]), 2)))
 
-        self.Ht = np.matrix([[-(mf[0] - mup[0]) / rp,
-                              -(mf[1] - mup[1]) / rp,
+        self.Ht = np.matrix([[-(self.mf[0] - self.mup[0]) / rp,
+                              -(self.mf[1] - self.mup[1]) / rp,
                               0],
-                             [(mf[1] - mup[1]) / np.power(rp, 2),
-                              -(mf[0] - mup[0]) / np.power(rp, 2),
+                             [(self.mf[1] - self.mup[1]) / np.power(rp, 2),
+                              -(self.mf[0] - self.mup[0]) / np.power(rp, 2),
                               -1]])
 
     def process_measurements(self, mf, mup):
@@ -153,7 +153,7 @@ class EKF():
         Sp = Gt * self.S * Gt.transpose() + self.bot.R
 
         # Linearization of measurement model
-        self.calc_Ht(self.mf, self.mup)
+        self.calc_Ht()
 
         # Measurement update
         # ---------------------------------------------
@@ -169,6 +169,8 @@ class EKF():
             self.S = Sp
 
         # Store results
+        # take this out in the future
+        # since plotting happens outside
         current_mup = copy.copy(self.mup)
         self.mup_S.append(current_mup)
 
@@ -176,28 +178,22 @@ class EKF():
         self.mu_S.append(np.asarray(current_bot_mu))
 
 #   def plot(self):
-#       # Plot
-#       plt.ion()
-#       fig = plt.figure(1)
-#       plt.axis('equal')
-#       plt.axis([0, 3, -0.5, 0.5])
-#       plt.plot(self.mf[0], self.mf[1], 'bs')
-#       x_states = [state[0] for state in self.bot_states]
-#       y_states = [state[1] for state in self.bot_states]
-#       plt.plot(x_states, y_states, 'r--')
-#       plt.plot(
-#           self.bot.state[0],
-#           self.bot.state[1],
-#           'r--')
-#       mu_xs = [mu[0] for mu in self.mu_S]
-#       mu_ys = [mu[1] for mu in self.mu_S]
+#     # Plot
+#     plt.ion()
+#     fig = plt.figure(1)
+#     plt.axis('equal')
+#     plt.axis([0, 3, -0.5, 0.5])
+#     plt.plot(self.mf[0], self.mf[1], 'bs')
 #
-#       mup_xs = [mup[0] for mup in self.mup_S]
-#       mup_ys = [mup[1] for mup in self.mup_S]
+#     mu_xs = [mu[0] for mu in self.mu_S]
+#     mu_ys = [mu[1] for mu in self.mu_S]
 #
-#       plt.plot(mu_xs, mu_ys, 'r.')
-#       plt.plot(mup_xs, mup_ys, 'b--')
-#       plt.show()
-#       plt.pause(0.0000001)
-#       plt.clf()
-#       fig.savefig('SmellyEKF.png')
+#     mup_xs = [mup[0] for mup in self.mup_S]
+#     mup_ys = [mup[1] for mup in self.mup_S]
+#
+#     plt.plot(mu_xs, mu_ys, 'r.')
+#     plt.plot(mup_xs, mup_ys, 'b--')
+#     plt.show()
+#     plt.pause(0.0000001)
+#     plt.clf()
+#     fig.savefig('SmellyEKF.png')

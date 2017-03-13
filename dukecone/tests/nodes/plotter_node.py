@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from rosbag_parser import rosbag_parser
 
 bag = rosbag.Bag(
-    "/home/melissafm/Workspace/ME780/turtlydata/plot_bags/ekf_plot_bag.bag")
+    "/home/melissafm/Workspace/ME780/turtlydata/plot_bags/ekf_2.bag")
 
 
 class Vec3Data:
@@ -70,8 +70,6 @@ class Pos2Data:
 class EstimateData:
 
     def __init__(self):
-        # "/dukecone/estimates/state"
-        self.estimate_bot_pose = Vec3Data()
 
         # "/dukecone/estimates/mu"
         self.estimate_mu = Vec3Data()
@@ -84,9 +82,6 @@ class EstimateData:
 
     def parse_incoming_measures(self, ros_msg, ros_time):
         self.incoming_measure.parse_msg(ros_msg, ros_time)
-
-    def parse_position_estimate(self, ros_msg, ros_time):
-        self.estimate_pose_pose.parse_msg(ros_msg, ros_time)
 
     def parse_mu_estimate(self, ros_msg, ros_time):
         self.estimate_mu.parse_msg(ros_msg, ros_time)
@@ -148,19 +143,24 @@ def plot_ekf_estimates(est_data):
     plt.plot(est_data.estimate_mu.x,
              est_data.estimate_mu.y,
              'r--',
-             label="Ekf estimates")
-    plt.plot(est_data.estimate_mup.x,
-             est_data.estimate_mup.y,
-             'b--')
+             label="Ekf mu")
+    # plt.plot(est_data.estimate_mup.x,
+    #         est_data.estimate_mup.y,
+    #         'b--',
+    #         label="Ekf mup")
 
-    plt.title("Estimated Target mu 2D")
+    plt.legend(loc=0)
+
+    plt.title("EKF Estimates 2D")
     plt.xlabel("X-position (m)")
     plt.ylabel("Y-position (m)")
 
     plt.subplot(212)
     plt.plot(est_data.estimate_mu.vec3_time,
              est_data.estimate_mu.z,
-             'b-')
+             'b-',
+             label="Ekf state heading")
+    plt.legend(loc=0)
     plt.xlabel("Time (s)")
     plt.ylabel("Heading (rad)")
 
