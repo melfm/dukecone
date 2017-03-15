@@ -120,10 +120,7 @@ class YoloNode(object):
         if(detected):
             # Publish the distance and bounding box
             object_loc = [x_center, y_center]
-            measurements = self.get_measured_values(object_loc, object_depth)
-            
-            # distance = measurements[0]
-            bearing = measurements[1]
+            bearing = self.calculate_bearing(object_loc)
 
             object_topic = self.construct_topic(
                             bounding_box,
@@ -153,7 +150,7 @@ class YoloNode(object):
         pixie_avg = (pixie_avg/(end_width - starting_width)) * 0.001
         return float(pixie_avg)
 
-    def get_measured_values(self, object_loc, object_depth):
+    def calculate_bearing(self, object_loc):
         # Focusing on purely horizontal FOV. Bearing is only in 2D
         horiz_fov = 57.0  # degrees
         vert_fov = 43.0  # degrees
@@ -173,25 +170,12 @@ class YoloNode(object):
         
         # Calculate angle of object in relation to center of image
         bearing = obj_x*horiz_res  # degrees
-        
-        # Calculate cosine of bearing
-        cos_bearing = np.cos(np.deg2rad(bearing))
-        
-        # Calculate true range, using measured bearing value.
-        if cos_bearing != 0.0:
-            distance = object_depth/np.cos(np.deg2rad(bearing))
-        else:
-            distance = object_depth
 
         print('x-y Coord ', obj_x, obj_y)
 
         print('Bearing w.r.t. 2D image : ', bearing)
-        print('Depth:', object_depth)
-        # print('Range:', distance)
         
-        measurements = [distance, bearing]
-        
-        return measurements
+        return bearing
 
     # use this function to draw the bounding box
     # of the detected object for testing purposes
