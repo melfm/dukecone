@@ -13,14 +13,13 @@ from geometry_msgs.msg import Pose2D
 from dukecone.msg import ObjectLocation
 
 # Define rosbag (all options)
-# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_0p85m_yolo.bag"
-# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_1p3m_yolo.bag"
-# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_2p6m_yolo.bag"
-bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_12deg_yolo.bag"
-# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_22deg_yolo.bag"
-# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_27deg_yolo.bag"
-# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_n9deg_yolo.bag"
-# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo/static_n17deg_yolo.bag"
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/0p85m_yolo.bag"
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/1p3m_yolo.bag"
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/2p6m_yolo.bag"
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/12deg_yolo.bag"
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/22deg_yolo.bag"
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/n9deg_yolo.bag"
+bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/n17deg_yolo.bag"
 
 bag = rosbag.Bag(bag_topic)
 
@@ -104,30 +103,30 @@ class MocapData:
         self.obj1_position.parse_msg(ros_msg, ros_time)
 
 def run_tests(mocap_data, tensorflow_data):
-    # Make tensorflow_data.theta negative. TODO: Fix in YOLO Detector
-    abs_bearing = abs(np.asarray(tensorflow_data.obj1_location.bearing)).tolist()
-    
     # Average all info
     turtlebot_x_avg = np.mean(mocap_data.turtlebot_pose.x)
     turtlebot_y_avg = np.mean(mocap_data.turtlebot_pose.y)
-    turtlebot_theta_avg = abs(np.mean(mocap_data.turtlebot_pose.theta))
-
+    turtlebot_theta_avg = np.mean(mocap_data.turtlebot_pose.theta)
+    
     obj1_x_avg = np.mean(mocap_data.obj1_position.x)
     obj1_y_avg = np.mean(mocap_data.obj1_position.y)
 
     obj1_range_avg = np.mean(tensorflow_data.obj1_location.range)
-    obj1_bearing_avg = np.mean(abs_bearing)
+    obj1_bearing_avg = np.mean(tensorflow_data.obj1_location.bearing)
 
     # Calculate comparison
     calc_range = np.sqrt(np.power((obj1_x_avg - turtlebot_x_avg), 2)
                          + np.power((obj1_y_avg - turtlebot_y_avg), 2))
-    calc_bearing = math.atan2(obj1_y_avg - turtlebot_y_avg,
-                              obj1_x_avg - turtlebot_x_avg) \
-                   - turtlebot_theta_avg
-    calc_bearing = abs(calc_bearing*180.0/math.pi)
+    calc_bearing = turtlebot_theta_avg \
+                   - math.atan2(obj1_y_avg - turtlebot_y_avg,
+                                obj1_x_avg - turtlebot_x_avg)
+                   
+    calc_bearing = calc_bearing*180.0/math.pi
     
     print('Statistics for bag:', bag_topic)
-    
+    print('------------------------------------')
+    print('Robot State, Mocap:', turtlebot_x_avg, turtlebot_y_avg, turtlebot_theta_avg)
+    print('Car Position:', obj1_x_avg, obj1_y_avg)
     print('------------------------------------')
     print('Average Values')
     print('------------------------------------')
@@ -147,7 +146,7 @@ def run_tests(mocap_data, tensorflow_data):
     obj1_y_var = np.var(mocap_data.obj1_position.y)
     
     obj1_range_var = np.var(tensorflow_data.obj1_location.range)
-    obj1_bearing_var = np.var(abs_bearing)
+    obj1_bearing_var = np.var(tensorflow_data.obj1_location.bearing)
 
     print('Variance For Each List')
     print('------------------------------------')
@@ -164,8 +163,8 @@ def run_tests(mocap_data, tensorflow_data):
     # Treat calc_range and calc_bearing as the mean values
     var_range_comp = sum([(r_i - calc_range)**2 for r_i in tensorflow_data.obj1_location.range]) \
                     / (len(tensorflow_data.obj1_location.range) - 1)
-    var_bearing_comp = sum([(th_i - calc_bearing)**2 for th_i in abs_bearing]) \
-                       / (len(abs_bearing) - 1)
+    var_bearing_comp = sum([(th_i - calc_bearing)**2 for th_i in tensorflow_data.obj1_location.bearing]) \
+                       / (len(tensorflow_data.obj1_location.bearing) - 1)
     
     # Print comparison values
     print('Variance for Measured Values wrt Ground Truth')

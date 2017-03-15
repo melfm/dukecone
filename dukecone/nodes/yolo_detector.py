@@ -82,7 +82,7 @@ class YoloNode(object):
     def calculate_distance(self, results, image_depth):
         # Only publish if you see a cone and the closest
         # Loop through all the bounding boxes and find min
-        nearest_object_dist = sys.maxsize
+        object_depth = sys.maxsize
         detected = False
         bounding_box = None
         for i in range(len(results)):
@@ -113,18 +113,21 @@ class YoloNode(object):
                       .format(distance_avg))
 
                 # self.draw_bounding_box(results, i)
-                if distance < nearest_object_dist:
-                    nearest_object_dist = distance_avg
+                if distance < object_depth:
+                    object_depth = distance_avg
                     bounding_box = [x, y, w, h]
 
         if(detected):
             # Publish the distance and bounding box
-            object_dist = [x_center, y_center]
-            bearing = self.calculate_bearing(object_dist)
+            object_loc = [x_center, y_center]
+            measurements = self.get_measured_values(object_loc, object_depth)
+            
+            # distance = measurements[0]
+            bearing = measurements[1]
 
             object_topic = self.construct_topic(
                             bounding_box,
-                            nearest_object_dist,
+                            object_depth,
                             x_center,
                             y_center,
                             bearing)
@@ -150,39 +153,44 @@ class YoloNode(object):
         pixie_avg = (pixie_avg/(end_width - starting_width)) * 0.001
         return float(pixie_avg)
 
-    def calculate_bearing(self, object_center):
+    def get_measured_values(self, object_loc, object_depth):
+        # Focusing on purely horizontal FOV. Bearing is only in 2D
+        horiz_fov = 57.0  # degrees
+        vert_fov = 43.0  # degrees
+        
+        # Define Kinect image params
+        image_width = 640  # Pixels
+        image_height = 480  # Pixels
+        
+        # Calculate Vertical and Horizontal Resolution
+        horiz_res = horiz_fov/image_width  # angle/pixel
+        # vert_res = vert_fov/image_height  # angle/pixel
+        
+        # Obtain location of object in pixels. Measured from center of image.
+        obj_x = object_loc[0] - image_width/2.0
+        obj_y = -(object_loc[1] - image_height/2.0)
+        
+        # Calculate angle of object in relation to center of image
+        bearing = obj_x*horiz_res  # degrees
+        
+        # Calculate cosine of bearing
+        cos_bearing = np.cos(np.deg2rad(bearing))
+        
+        # Calculate true range, using measured bearing value.
+        if cos_bearing != 0.0:
+            distance = object_depth/np.cos(np.deg2rad(bearing))
+        else:
+            distance = object_depth
 
-        # per diagonal
-        camera_horizontal_fov = 43/2.0
-        camera_vertical_fov = 57/2.0
+        print('x-y Coord ', obj_x, obj_y)
 
-        image_width = 640/2.0
-        image_height = 480/2.0
-
-        detected_obj_x = object_center[0]
-        detected_obj_y = object_center[1]
-
-        diagonal_dist = np.sqrt(np.power(image_width, 2) +
-                                np.power(image_height, 2))
-        angle_per_pixel = camera_horizontal_fov / float(diagonal_dist)
-
-        angle_per_pixel_ver = camera_vertical_fov / float(diagonal_dist)
-
-        angle_per_pixel += angle_per_pixel_ver
-
-        # using trigonometry calculate bearing
-
-        adjacent = math.fabs(image_height - detected_obj_y)
-        opposite = math.fabs((image_width) - detected_obj_x)
-
-        print('x-y Coord ', object_center)
-
-        bearing_from_2d = np.sqrt(np.power(adjacent, 2) +
-                                  np.power(opposite, 2)) * angle_per_pixel
-
-        print('Bearing w.r.t. 2D image : ', bearing_from_2d)
-
-        return bearing_from_2d
+        print('Bearing w.r.t. 2D image : ', bearing)
+        print('Depth:', object_depth)
+        # print('Range:', distance)
+        
+        measurements = [distance, bearing]
+        
+        return measurements
 
     # use this function to draw the bounding box
     # of the detected object for testing purposes
