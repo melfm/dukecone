@@ -167,8 +167,9 @@ class YoloNode(object):
         # vert_res = vert_fov/image_height  # angle/pixel
         
         # Obtain location of object in pixels. Measured from center of image.
-        obj_x = object_loc[0] - image_width/2.0
-        obj_y = -(object_loc[1] - image_height/2.0)
+        # Positive x is to the left, Positive y is upwards
+        obj_x = image_width/2.0 - object_loc[0]
+        obj_y = image_height/2.0 - object_loc[1]
         
         # Calculate angle of object in relation to center of image
         bearing = obj_x*horiz_res  # degrees

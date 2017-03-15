@@ -16,10 +16,10 @@ from dukecone.msg import ObjectLocation
 # bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/0p85m_yolo.bag"
 # bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/1p3m_yolo.bag"
 # bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/2p6m_yolo.bag"
-# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/12deg_yolo.bag"
+bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/12deg_yolo.bag"
 # bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/22deg_yolo.bag"
 # bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/n9deg_yolo.bag"
-bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/n17deg_yolo.bag"
+# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/n17deg_yolo.bag"
 
 bag = rosbag.Bag(bag_topic)
 
@@ -117,9 +117,9 @@ def run_tests(mocap_data, tensorflow_data):
     # Calculate comparison
     calc_range = np.sqrt(np.power((obj1_x_avg - turtlebot_x_avg), 2)
                          + np.power((obj1_y_avg - turtlebot_y_avg), 2))
-    calc_bearing = turtlebot_theta_avg \
-                   - math.atan2(obj1_y_avg - turtlebot_y_avg,
-                                obj1_x_avg - turtlebot_x_avg)
+    calc_bearing = math.atan2(obj1_y_avg - turtlebot_y_avg,
+                                obj1_x_avg - turtlebot_x_avg) \
+                   - turtlebot_theta_avg
                    
     calc_bearing = calc_bearing*180.0/math.pi
     
