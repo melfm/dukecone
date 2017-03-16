@@ -153,28 +153,27 @@ class YoloNode(object):
     def calculate_bearing(self, object_loc):
         # Focusing on purely horizontal FOV. Bearing is only in 2D
         horiz_fov = 57.0  # degrees
-        vert_fov = 43.0  # degrees
-        
+
         # Define Kinect image params
         image_width = 640  # Pixels
         image_height = 480  # Pixels
-        
+
         # Calculate Vertical and Horizontal Resolution
         horiz_res = horiz_fov/image_width  # angle/pixel
-        # vert_res = vert_fov/image_height  # angle/pixel
-        
+
         # Obtain location of object in pixels. Measured from center of image.
         # Positive x is to the left, Positive y is upwards
         obj_x = image_width/2.0 - object_loc[0]
         obj_y = image_height/2.0 - object_loc[1]
-        
+
         # Calculate angle of object in relation to center of image
         bearing = obj_x*horiz_res  # degrees
+        bearing = bearing*math.pi/180.0  # radians
 
         print('x-y Coord ', obj_x, obj_y)
 
         print('Bearing w.r.t. 2D image : ', bearing)
-        
+
         return bearing
 
     # use this function to draw the bounding box

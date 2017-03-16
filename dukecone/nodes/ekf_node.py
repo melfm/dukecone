@@ -111,9 +111,9 @@ class EKFNode():
         self.feat_x_center = data.x_center
         self.feat_y_center = data.y_center
         self.feat_range = data.distance
-        bearing = data.bearing
+        self.feat_bearing = data.bearing
 
-        print('Bearing:', bearing)
+        print('Bearing:', self.feat_bearing)
         # Update measurement
         self.ekf.set_measurement(self.feat_range,
                                  self.feat_bearing)
