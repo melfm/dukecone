@@ -43,7 +43,7 @@ class Yolo_tf:
 
         self.filewrite_img = False
         self.filewrite_txt = False
-        self.disp_console = True
+        self.disp_console = False
 
         self.build_networks()
         # if FLAGS.load_test_file is not None:

@@ -106,11 +106,11 @@ class YoloNode(object):
                     image_depth, y_center, x_center, w, h)
                 # convert to mm
                 distance = float(center_pixel_depth) * 0.001
-                print("Distance of object {} from target : \
-                      {}".format(i, distance))
+                #print("Distance of object {} from target : \
+                #      {}".format(i, distance))
 
-                print("Averaged distance of object {} : "
-                      .format(distance_avg))
+                #print("Averaged distance of object {} : "
+                #      .format(distance_avg))
 
                 # self.draw_bounding_box(results, i)
                 if distance < object_depth:
@@ -129,7 +129,7 @@ class YoloNode(object):
                             y_center,
                             bearing)
 
-            rospy.loginfo(self.pub_img_pos)
+            #rospy.loginfo(self.pub_img_pos)
             self.pub_img_pos.publish(object_topic)
 
     def depth_region(self, depth_map, y_center, x_center, w, h):
@@ -156,7 +156,7 @@ class YoloNode(object):
 
         # Define Kinect image params
         image_width = 640  # Pixels
-        image_height = 480  # Pixels
+        #image_height = 480  # Pixels
 
         # Calculate Vertical and Horizontal Resolution
         horiz_res = horiz_fov/image_width  # angle/pixel
@@ -164,15 +164,15 @@ class YoloNode(object):
         # Obtain location of object in pixels. Measured from center of image.
         # Positive x is to the left, Positive y is upwards
         obj_x = image_width/2.0 - object_loc[0]
-        obj_y = image_height/2.0 - object_loc[1]
+        #obj_y = image_height/2.0 - object_loc[1]
 
         # Calculate angle of object in relation to center of image
         bearing = obj_x*horiz_res  # degrees
         bearing = bearing*math.pi/180.0  # radians
 
-        print('x-y Coord ', obj_x, obj_y)
+        #print('x-y Coord ', obj_x, obj_y)
 
-        print('Bearing w.r.t. 2D image : ', bearing)
+        #print('Bearing w.r.t. 2D image : ', bearing)
 
         return bearing
 

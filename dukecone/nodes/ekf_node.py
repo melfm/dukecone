@@ -6,6 +6,7 @@ import numpy as np
 
 from geometry_msgs.msg import Twist, Vector3, Pose2D
 from dukecone.msg import ObjectLocation
+from nav_msgs.msg import Odometry
 
 
 class EKFNode():
@@ -13,10 +14,10 @@ class EKFNode():
     def __init__(self):
 
         # Publishers and subscribers
-        bot_cmd_topic = '/cmd_vel_mux/input/navi'
+        bot_cmd_topic = '/odom'
         self.ekf_sub_input = rospy.Subscriber(
                                              bot_cmd_topic,
-                                             Twist,
+                                             Odometry,
                                              self.bot_input_callback)
         tf_obj_topic = '/tensorflow/object/location'
         self.ekf_sub_obj = rospy.Subscriber(tf_obj_topic,
@@ -89,9 +90,12 @@ class EKFNode():
         self.bot_mocap_pose = []
 
     def bot_input_callback(self, data):
-        bot_linear_x = data.linear.x
-        bot_omega = data.angular.z
+        bot_linear_x = data.twist.twist.linear.x
+        bot_omega = data.twist.twist.angular.z
+        print('bot inputs ', bot_linear_x, bot_omega)
+
         self.ekf.update_input([bot_linear_x, bot_omega])
+
         if (self.input_timer):
             self.dt0 = rospy.get_rostime()
             self.input_timer = False
@@ -100,7 +104,7 @@ class EKFNode():
             self.input_timer = True
             # update dt
             self.dt = (self.dt1 - self.dt0).to_sec()
-            #print('Updated dt ->', self.dt)
+            print('Updated dt ->', self.dt)
             # update ekf dt
             self.ekf.dt = self.dt
 
@@ -113,7 +117,7 @@ class EKFNode():
         self.feat_range = data.distance
         self.feat_bearing = data.bearing
 
-        print('Bearing:', self.feat_bearing)
+        #print('Bearing:', self.feat_bearing)
         # Update measurement
         self.ekf.set_measurement(self.feat_range,
                                  self.feat_bearing)
@@ -185,4 +189,5 @@ if __name__ == '__main__':
 
     while not rospy.is_shutdown():
         ekf_node.run_estimator()
+        #ekf_node.ekf.plot()
         rate.sleep()
