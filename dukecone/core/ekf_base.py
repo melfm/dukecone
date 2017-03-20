@@ -9,7 +9,6 @@ import copy
 
 from scipy import linalg as la
 
-
 class TurtleBot:
 
     def __init__(self):
@@ -55,14 +54,14 @@ class EKF():
         self.S = S                      # Covariance matrix
 
         # Measurement noise
-        q = [0.025, 1]
+        q = [0.00025, 0.0225]
         self.Q = np.diag(q)
 
         # Define measurement matrix
         self.Ht = None
 
         # Control inputs
-        self.u = [0.2, 0]
+        self.u = [0.2, 0.0]
 
         self.meas_updates = None
 
@@ -71,7 +70,7 @@ class EKF():
         # Simulation initializations
         self.mu_S = []
         self.mup_S = []
-        self.mf = [1.3, 0.02]
+        self.mf = [1.5, 0.0]
         self.Inn = []
 
         self.bot_states = []
@@ -80,7 +79,7 @@ class EKF():
         # Make sure input makes sense
         assert(len(new_input) == 2)
         self.u = new_input
-        print('Input ', self.u[0], self.u[1])
+        #print('Input ', self.u[0], self.u[1])
 
     def update_feat_mf(self, new_mf):
         self.mf = new_mf
@@ -89,8 +88,11 @@ class EKF():
         self.mup[0] = self.mu[0] + self.u[0] * np.cos(self.mu[2]) * self.dt
         self.mup[1] = self.mu[1] + self.u[0] * np.sin(self.mu[2]) * self.dt
         self.mup[2] = self.mu[2] + self.u[1] * self.dt
+        #print('mup ', self.mup[2])
         # experimental Navs idea
         self.mup[2] = np.mod(self.mup[2] + math.pi, 2 * math.pi) - math.pi
+        #print('mup ', self.mup[2])
+
 
     def set_measurement(self, feat_range, feat_bearing):
         self.y = [feat_range, feat_bearing]
@@ -114,9 +116,11 @@ class EKF():
                                   np.power((mf[1] - mup[1]), 2))
         predicted_bearing = math.atan2(mf[1] - mup[1],
                                        mf[0] - mup[0]) - mup[2]
+        #print('bearing ', predicted_bearing)
         predicted_bearing = np.mod(
             predicted_bearing + math.pi,
             2 * math.pi) - math.pi
+        #print('bearing ', predicted_bearing)
         self.meas_updates = np.matrix([[predicted_range, predicted_bearing]])
 
     def update_measurement(self, h, Sp):
@@ -188,8 +192,9 @@ class EKF():
         #plt.ion()
         fig = plt.figure(1)
         plt.axis('equal')
-        plt.axis([0, 3, -0.5, 0.5])
-        plt.plot(self.mf[0], self.mf[1], 'bs')
+        #plt.axis([0, 3, -0.5, 0.5])
+        if(len(self.mf)>0):
+            plt.plot(self.mf[0], self.mf[1], 'bs')
         #x_states = [state[0] for state in self.bot_states]
         #y_states = [state[1] for state in self.bot_states]
         #plt.plot(x_states, y_states, 'r--')
@@ -197,14 +202,16 @@ class EKF():
         #    self.bot.state[0],
         #    self.bot.state[1],
         #    'r--')
-        mu_xs = [mu[0] for mu in self.mu_S]
-        mu_ys = [mu[1] for mu in self.mu_S]
+        if((len(self.mu_S) > 0) & (len(self.mup_S) > 0)):
+            mu_xs = [mu[0] for mu in self.mu_S]
+            mu_ys = [mu[1] for mu in self.mu_S]
 
-        mup_xs = [mup[0] for mup in self.mup_S]
-        mup_ys = [mup[1] for mup in self.mup_S]
-
-        plt.plot(mu_xs, mu_ys, 'r.')
-        plt.plot(mup_xs, mup_ys, 'b--')
-        plt.show()
-        #plt.pause(0.000001)
-        fig.savefig('SmellyEKF.png')
+            mup_xs = [mup[0] for mup in self.mup_S]
+            mup_ys = [mup[1] for mup in self.mup_S]
+            print('mu' , mu_xs, mu_ys)
+            print('mup', mup_xs, mup_ys)
+            plt.plot(mu_xs, mu_ys, 'r.')
+            plt.plot(mup_xs, mup_ys, 'b--')
+            plt.show()
+            #plt.pause(0.000001)
+            fig.savefig('SmellyEKF.png')

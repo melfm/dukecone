@@ -3,7 +3,8 @@
 import core.ekf_base as ekf
 import rospy
 import numpy as np
-
+import time
+import sys
 from geometry_msgs.msg import Twist, Vector3, Pose2D
 from dukecone.msg import ObjectLocation
 from nav_msgs.msg import Odometry
@@ -13,16 +14,6 @@ class EKFNode():
 
     def __init__(self):
 
-        # Publishers and subscribers
-        bot_cmd_topic = '/odom'
-        self.ekf_sub_input = rospy.Subscriber(
-                                             bot_cmd_topic,
-                                             Odometry,
-                                             self.bot_input_callback)
-        tf_obj_topic = '/tensorflow/object/location'
-        self.ekf_sub_obj = rospy.Subscriber(tf_obj_topic,
-                                            ObjectLocation,
-                                            self.obj_callback)
         # inputs
         incoming_measure_top = '/dukecone/estimates/meas'
 
@@ -30,19 +21,6 @@ class EKFNode():
         mup_estimate_top = '/dukecone/estimates/mup'
         mu_estimate_top = '/dukecone/estimates/mu'
         bot_state_top = '/dukecone/estimates/state'
-
-        # MOCAP subscribers
-        bot_mocap_top = '/turtlebot/ground_pose'
-        self.bot_mocap_sub = rospy.Subscriber(
-                                              bot_mocap_top,
-                                              Pose2D,
-                                              self.bot_mocap_callback)
-
-        obj1_mocap_top = '/obj1/ground_pose'
-        self.obj1_mocap_sub = rospy.Subscriber(
-                                              obj1_mocap_top,
-                                              Pose2D,
-                                              self.obj1_mocap_callback)
 
         self.pub_incoming_meas = rospy.Publisher(
                                     incoming_measure_top,
@@ -63,7 +41,6 @@ class EKFNode():
                                 bot_state_top,
                                 Vector3,
                                 queue_size=1)
-
         self.feat_x_center = None
         self.feat_y_center = None
         self.feat_range = 0.0
@@ -78,8 +55,8 @@ class EKFNode():
 
         # Define initial state and prior
         # Assume we have perfect knowledge of prior
-        x0 = [0, 0, 0]
-        mu = [0, 0, 0]
+        x0 = [-1.3, 0.0, 0.0]
+        mu = x0
         # number of states
         n = len(x0)
         # Define initial covariance
@@ -89,12 +66,38 @@ class EKFNode():
         # Define MOCAP variables
         self.bot_mocap_pose = []
 
+
+        # Publishers and subscribers
+        bot_cmd_topic = '/odom'
+        self.ekf_sub_input = rospy.Subscriber(
+                                             bot_cmd_topic,
+                                             Odometry,
+                                             self.bot_input_callback)
+        tf_obj_topic = '/tensorflow/object/location'
+        self.ekf_sub_obj = rospy.Subscriber(tf_obj_topic,
+                                            ObjectLocation,
+                                            self.obj_callback)
+
+
+        # MOCAP subscribers
+        bot_mocap_top = '/turtlebot/ground_pose'
+        self.bot_mocap_sub = rospy.Subscriber(
+                                              bot_mocap_top,
+                                              Pose2D,
+                                              self.bot_mocap_callback)
+
+        obj1_mocap_top = '/obj1/ground_pose'
+        self.obj1_mocap_sub = rospy.Subscriber(
+                                              obj1_mocap_top,
+                                              Pose2D,
+                                              self.obj1_mocap_callback)
+
     def bot_input_callback(self, data):
         bot_linear_x = data.twist.twist.linear.x
         bot_omega = data.twist.twist.angular.z
-        print('bot inputs ', bot_linear_x, bot_omega)
+        #print('bot inputs ', bot_linear_x, bot_omega)
 
-        self.ekf.update_input([bot_linear_x, bot_omega])
+        self.ekf.update_input([0.2, 0.0])
 
         if (self.input_timer):
             self.dt0 = rospy.get_rostime()
@@ -104,11 +107,12 @@ class EKFNode():
             self.input_timer = True
             # update dt
             self.dt = (self.dt1 - self.dt0).to_sec()
-            print('Updated dt ->', self.dt)
+            #print('Updated dt ->', self.dt)
             # update ekf dt
             self.ekf.dt = self.dt
 
         self.run_estimator()
+        #print('EKF running....')
 
     def obj_callback(self, data):
         """ Get position of closest detected object"""
@@ -171,6 +175,7 @@ class EKFNode():
 
         # publish measurements
         # rospy.loginfo(self.pub_incoming_meas)
+        #print(' eas' , self.ekf.y[0], self.ekf.y[1])
         pub_meas_msg = self.make_measure_topic(self.ekf.y)
         self.pub_incoming_meas.publish(pub_meas_msg)
 
@@ -186,8 +191,9 @@ if __name__ == '__main__':
     rospy.init_node('EKFNode', anonymous=True)
     ekf_node = EKFNode()
     rate = rospy.Rate(50)
+    counter = 0
 
     while not rospy.is_shutdown():
         ekf_node.run_estimator()
-        #ekf_node.ekf.plot()
+        # ekf_node.ekf.plot()
         rate.sleep()

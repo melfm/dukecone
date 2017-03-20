@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from rosbag_parser import rosbag_parser
 
 bag = rosbag.Bag(
-    "/home/melissafm/Workspace/ME780/turtlydata/plot_bags/ekf_2.bag")
+    "/home/melissafm/Workspace/ME780/dukecone/dukecone/experiment_data/exp1_go_straight/exp1_live_18.bag")
 
 
 class Vec3Data:
@@ -140,9 +140,10 @@ def plot_ekf_estimates(est_data):
 
     plt.figure(figsize=(7.0, 7.0))
     plt.subplot(211)
+    plt.axis([-1.5, 1.5, -1, 1])
     plt.plot(est_data.estimate_mu.x,
              est_data.estimate_mu.y,
-             'r--',
+             'g^',
              label="Ekf mu")
     # plt.plot(est_data.estimate_mup.x,
     #         est_data.estimate_mup.y,
@@ -174,10 +175,12 @@ def plot_mocap_data(mocap_data):
     #########################
     plt.figure()
 
-    plt.axis([mocap_data.position_turtle.x[0],
-              mocap_data.position_turtle.x[-1]+2,
-              mocap_data.position_turtle.y[0]-0.2,
-              mocap_data.position_turtle.y[-1]+0.2])
+    #plt.axis([mocap_data.position_turtle.x[0],
+    #          mocap_data.position_turtle.x[-1]+2,
+    #          mocap_data.position_turtle.y[0]-0.2,
+    #          mocap_data.position_turtle.y[-1]+0.2])
+
+    plt.axis([-2, 2, -2, 2])
 
     plt.plot(mocap_data.position_turtle.x,
              mocap_data.position_turtle.y,
@@ -192,6 +195,52 @@ def plot_mocap_data(mocap_data):
     plt.xlabel("X-pose (m)")
     plt.ylabel("Y-pose (m)")
     plt.savefig("test_plots/mocap_data.png")
+
+
+def plot_mocap_ekf_together_forever(mocap_data, est_data):
+    #########################
+    # Plot Mocap data
+    #########################
+    plt.figure()
+
+    #plt.axis([mocap_data.position_turtle.x[0],
+    #          mocap_data.position_turtle.x[-1]+2,
+    #          mocap_data.position_turtle.y[0]-0.2,
+    #          mocap_data.position_turtle.y[-1]+0.2])
+
+    plt.axis([-2, 2, -2, 2])
+
+    plt.plot(mocap_data.position_turtle.x,
+             mocap_data.position_turtle.y,
+             label="Turtlebot position gound truth")
+
+    plt.plot(mocap_data.position_object.x,
+             mocap_data.position_object.y,
+             'bo',
+             label="Object position gound truth")
+
+    plt.title("EKF/GT")
+    plt.xlabel("X-pose (m)")
+    plt.ylabel("Y-pose (m)")
+
+    #########################
+    # Plot incoming measures
+    #########################
+    #plt.axis([-1.5, 1.5, -1, 1])
+    plt.plot(est_data.estimate_mu.x,
+             est_data.estimate_mu.y,
+             'r-',
+             label="Ekf mu")
+    plt.savefig("test_plots/ekf_gt.png")
+
+
+def plot_turtle_input(input_cmd):
+    #########################
+    # Plot Mocap data
+    #########################
+    pass
+    #plt.axis([-2, 2, -2, 2])
+
 
 
 if __name__ == '__main__':
@@ -216,3 +265,4 @@ if __name__ == '__main__':
     print('Plotting...')
     plot_ekf_estimates(est_data)
     plot_mocap_data(mocap_data)
+    plot_mocap_ekf_together_forever(mocap_data, est_data)
