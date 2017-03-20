@@ -65,14 +65,28 @@ class EKFNode():
 
         # Define MOCAP variables
         self.bot_mocap_pose = []
-
-
+        
+        # Define input method
+        # Set to either "odom" or "input"
+        self.input_method = "odom"
+        self.odom_linear_x = 0.0
+        self.odom_omega = 0.0
+        self.input_linear_x = 0.0
+        self.input_omega = 0.0
+        
         # Publishers and subscribers
-        bot_cmd_topic = '/odom'
-        self.ekf_sub_input = rospy.Subscriber(
-                                             bot_cmd_topic,
+        bot_odom_topic = '/odom'
+        self.ekf_sub_odom = rospy.Subscriber(
+                                             bot_odom_topic,
                                              Odometry,
-                                             self.bot_input_callback)
+                                             self.bot_odom_callback)
+        
+        bot_input_topic = '/cmd_vel_mux/input/navi'
+        self.ekf_sub_input = rospy.Subscriber(
+                                              bot_input_topic,
+                                              Twist,
+                                              self.bot_input_callback)
+        
         tf_obj_topic = '/tensorflow/object/location'
         self.ekf_sub_obj = rospy.Subscriber(tf_obj_topic,
                                             ObjectLocation,
@@ -92,27 +106,54 @@ class EKFNode():
                                               Pose2D,
                                               self.obj1_mocap_callback)
 
-    def bot_input_callback(self, data):
-        bot_linear_x = data.twist.twist.linear.x
-        bot_omega = data.twist.twist.angular.z
+    def bot_odom_callback(self, data):
+        self.odom_linear_x = data.linear.x
+        self.odom_omega = data.angular.z
         #print('bot inputs ', bot_linear_x, bot_omega)
+        
+        if self.input_method == "odom":
+            self.ekf.update_input([self.odom_linear_x, 0.0])
+    
+            if (self.input_timer):
+                self.dt0 = rospy.get_rostime()
+                self.input_timer = False
+            else:
+                self.dt1 = rospy.get_rostime()
+                self.input_timer = True
+                # update dt
+                self.dt = (self.dt1 - self.dt0).to_sec()
+                #print('Updated dt ->', self.dt)
+                # update ekf dt
+                self.ekf.dt = self.dt
+    
+            self.run_estimator()
+            #print('EKF running....')
 
-        self.ekf.update_input([0.2, 0.0])
-
-        if (self.input_timer):
-            self.dt0 = rospy.get_rostime()
-            self.input_timer = False
-        else:
-            self.dt1 = rospy.get_rostime()
-            self.input_timer = True
-            # update dt
-            self.dt = (self.dt1 - self.dt0).to_sec()
-            #print('Updated dt ->', self.dt)
-            # update ekf dt
-            self.ekf.dt = self.dt
-
-        self.run_estimator()
-        #print('EKF running....')
+    def bot_input_callback(self, data):
+        self.input_linear_x = data.twist.twist.linear.x
+        self.input_omega = data.twist.twist.angular.z
+        #print('bot inputs ', bot_linear_x, bot_omega)
+        
+        if self.input_method == "input":
+            if self.odom_linear_x == 0.0:
+                self.input_linear_x = 0.0
+            
+            self.ekf.update_input([self.input_linear_x, 0.0])
+        
+            if (self.input_timer):
+                self.dt0 = rospy.get_rostime()
+                self.input_timer = False
+            else:
+                self.dt1 = rospy.get_rostime()
+                self.input_timer = True
+                # update dt
+                self.dt = (self.dt1 - self.dt0).to_sec()
+                #print('Updated dt ->', self.dt)
+                # update ekf dt
+                self.ekf.dt = self.dt
+        
+            self.run_estimator()
+            #print('EKF running....')
 
     def obj_callback(self, data):
         """ Get position of closest detected object"""
