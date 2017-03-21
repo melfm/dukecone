@@ -14,7 +14,7 @@ class TurtleBot:
     def __init__(self):
         self.state = []
 
-        r = [0.0025, 0.0025, 0.003]
+        r = [1e-6, 1e-6, 1e-8]
         self.R = np.diag(r)
 
     def update_state(self, u, dt):
@@ -54,7 +54,7 @@ class EKF():
         self.S = S                      # Covariance matrix
 
         # Measurement noise
-        q = [0.00025, 0.0225]
+        q = [0.025, 0.25]
         self.Q = np.diag(q)
 
         # Define measurement matrix
@@ -70,7 +70,7 @@ class EKF():
         # Simulation initializations
         self.mu_S = []
         self.mup_S = []
-        self.mf = [1.5, 0.0]
+        self.mf = [1.2, 0.0]
         self.Inn = []
 
         self.bot_states = []
@@ -189,7 +189,7 @@ class EKF():
 
     def plot(self):
         # Plot
-        #plt.ion()
+        plt.ion()
         fig = plt.figure(1)
         plt.axis('equal')
         #plt.axis([0, 3, -0.5, 0.5])
@@ -208,10 +208,10 @@ class EKF():
 
             mup_xs = [mup[0] for mup in self.mup_S]
             mup_ys = [mup[1] for mup in self.mup_S]
-            print('mu' , mu_xs, mu_ys)
-            print('mup', mup_xs, mup_ys)
+            #print('mu' , mu_xs, mu_ys)
+            #print('mup', mup_xs, mup_ys)
             plt.plot(mu_xs, mu_ys, 'r.')
             plt.plot(mup_xs, mup_ys, 'b--')
             plt.show()
-            #plt.pause(0.000001)
-            fig.savefig('SmellyEKF.png')
+            plt.pause(0.000001)
+            #fig.savefig('SmellyEKF.png')

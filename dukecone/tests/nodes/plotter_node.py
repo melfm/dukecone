@@ -9,6 +9,8 @@ from rosbag_parser import rosbag_parser
 
 bag = rosbag.Bag(
     "/home/melissafm/Workspace/ME780/dukecone/dukecone/experiment_data/exp1_go_straight/exp1_live_18.bag")
+# bag = rosbag.Bag(
+#    "/home/melissafm/Workspace/ME780/turtlydata/new_bags/subset.bag")
 
 
 class Vec3Data:
@@ -67,6 +69,22 @@ class Pos2Data:
             return
 
 
+class TwistData:
+
+    def __init__(self):
+        self.vec3_time = []
+        self.x = []
+        self.y = []
+        self.z = []
+
+    def parse_msg(self, ros_msg, ros_time):
+        self.vec3_time.append(ros_time)
+
+        self.x.append(ros_msg.linear.x)
+        self.y.append(ros_msg.linear.y)
+        self.z.append(ros_msg.linear.z)
+
+
 class EstimateData:
 
     def __init__(self):
@@ -106,10 +124,17 @@ class MocapData:
         self.position_object.parse_msg(ros_msg, ros_time)
 
 
-def plot_ekf_estimates(est_data):
+class MotionCmdData:
 
-    # change directory to store in the plot dir
-    os.chdir('../')
+    def __init__(self):
+        # "/cmd_vel_mux/input/navi"
+        self.input_cmd = TwistData()
+
+    def parse_input_cmd(self, ros_msg, ros_time):
+        self.input_cmd.parse_msg(ros_msg, ros_time)
+
+
+def plot_ekf_estimates(est_data):
 
     #########################
     # Plot incoming measures
@@ -145,6 +170,7 @@ def plot_ekf_estimates(est_data):
              est_data.estimate_mu.y,
              'g^',
              label="Ekf mu")
+
     # plt.plot(est_data.estimate_mup.x,
     #         est_data.estimate_mup.y,
     #         'b--',
@@ -175,10 +201,10 @@ def plot_mocap_data(mocap_data):
     #########################
     plt.figure()
 
-    #plt.axis([mocap_data.position_turtle.x[0],
-    #          mocap_data.position_turtle.x[-1]+2,
-    #          mocap_data.position_turtle.y[0]-0.2,
-    #          mocap_data.position_turtle.y[-1]+0.2])
+    plt.axis([mocap_data.position_turtle.x[0]-2,
+              mocap_data.position_turtle.x[1]+2,
+              mocap_data.position_turtle.y[0]-0.5,
+              mocap_data.position_turtle.y[1]+0.2])
 
     plt.axis([-2, 2, -2, 2])
 
@@ -197,13 +223,13 @@ def plot_mocap_data(mocap_data):
     plt.savefig("test_plots/mocap_data.png")
 
 
-def plot_mocap_ekf_together_forever(mocap_data, est_data):
+def plot_mocap_ekf(mocap_data, est_data):
     #########################
     # Plot Mocap data
     #########################
     plt.figure()
 
-    #plt.axis([mocap_data.position_turtle.x[0],
+    # plt.axis([mocap_data.position_turtle.x[0],
     #          mocap_data.position_turtle.x[-1]+2,
     #          mocap_data.position_turtle.y[0]-0.2,
     #          mocap_data.position_turtle.y[-1]+0.2])
@@ -234,21 +260,47 @@ def plot_mocap_ekf_together_forever(mocap_data, est_data):
     plt.savefig("test_plots/ekf_gt.png")
 
 
-def plot_turtle_input(input_cmd):
+def plot_turtle_input(input_data):
     #########################
-    # Plot Mocap data
+    # Plot input cmds
     #########################
-    pass
-    #plt.axis([-2, 2, -2, 2])
+    # change directory to store in the plot dir
+    os.chdir('../')
 
+    plt.figure()
+    plt.figure(figsize=(7.0, 7.0))
+    plt.subplot(211)
+
+    plt.plot(input_data.input_cmd.vec3_time,
+             input_data.input_cmd.x)
+
+    plt.title("cmd_vel_mux/input/navi")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Linear.x (m)")
+
+    plt.subplot(212)
+
+    plt.plot(input_data.input_cmd.vec3_time,
+             input_data.input_cmd.z)
+
+    plt.title("cmd_vel_mux/input/navi")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Linear.z (m)")
+
+    plt.subplots_adjust(bottom=0.08, hspace=0.5)
+
+    plt.savefig("test_plots/input_cmd_z.png")
 
 
 if __name__ == '__main__':
 
     mocap_data = MocapData()
     est_data = EstimateData()
+    motion_cmd = MotionCmdData()
 
     params = [
+        {"topic": "/cmd_vel_mux/input/navi",
+         "callback": motion_cmd.parse_input_cmd},
         {"topic": "/turtlebot/ground_pose",
          "callback": mocap_data.parse_position_body},
         {"topic": "/obj1/ground_pose",
@@ -259,10 +311,12 @@ if __name__ == '__main__':
          "callback": est_data.parse_mu_estimate},
         {"topic": "/dukecone/estimates/mup",
          "callback": est_data.parse_mup_estimate}
+
     ]
 
     rosbag_parser(bag, params)
     print('Plotting...')
+    plot_turtle_input(motion_cmd)
     plot_ekf_estimates(est_data)
     plot_mocap_data(mocap_data)
-    plot_mocap_ekf_together_forever(mocap_data, est_data)
+    plot_mocap_ekf(mocap_data, est_data)
