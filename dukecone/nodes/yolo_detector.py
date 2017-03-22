@@ -106,10 +106,10 @@ class YoloNode(object):
                     image_depth, y_center, x_center, w, h)
                 # convert to mm
                 distance = float(center_pixel_depth) * 0.001
-                #print("Distance of object {} from target : \
+                # print("Distance of object {} from target : \
                 #      {}".format(i, distance))
 
-                #print("Averaged distance of object {} : "
+                # print("Averaged distance of object {} : "
                 #      .format(distance_avg))
 
                 # self.draw_bounding_box(results, i)
@@ -129,7 +129,7 @@ class YoloNode(object):
                             y_center,
                             bearing)
 
-            #rospy.loginfo(self.pub_img_pos)
+            # rospy.loginfo(self.pub_img_pos)
             self.pub_img_pos.publish(object_topic)
 
     def depth_region(self, depth_map, y_center, x_center, w, h):
@@ -151,48 +151,26 @@ class YoloNode(object):
         return float(pixie_avg)
 
     def calculate_bearing(self, object_loc):
-        # Focusing on purely horizontal FOV. Bearing is only in 2D
+        # only consider horizontal FOV.
+        # Bearing is only in 2D
         horiz_fov = 57.0  # degrees
 
         # Define Kinect image params
         image_width = 640  # Pixels
-        #image_height = 480  # Pixels
 
         # Calculate Vertical and Horizontal Resolution
-        horiz_res = horiz_fov/image_width  # angle/pixel
+        horiz_res = horiz_fov/image_width
 
-        # Obtain location of object in pixels. Measured from center of image.
-        # Positive x is to the left, Positive y is upwards
+        # location of object in pixels.
+        # Measured from center of image.
+        # Positive x is to the left, positive y is upwards
         obj_x = image_width/2.0 - object_loc[0]
-        #obj_y = image_height/2.0 - object_loc[1]
 
         # Calculate angle of object in relation to center of image
-        bearing = obj_x*horiz_res  # degrees
+        bearing = obj_x*horiz_res        # degrees
         bearing = bearing*math.pi/180.0  # radians
 
-        #print('x-y Coord ', obj_x, obj_y)
-
-        #print('Bearing w.r.t. 2D image : ', bearing)
-
         return bearing
-
-    # use this function to draw the bounding box
-    # of the detected object for testing purposes
-    def draw_bounding_box(self, boxes, index):
-        img = np.zeros((self.img_width, self.img_height, 3), np.uint8)
-        img[:, :] = (255, 0, 0)
-        location = self.get_object_2dlocation(index, boxes)
-        x = location[0]
-        y = location[1]
-        w = location[2]
-        h = location[3]
-        x_center = location[4]
-        y_center = location[5]
-
-        cv2.rectangle(img, (x-w, y-h), (x+w, y+h), (0, 255, 0), 2)
-        cv2.circle(img, (x_center, y_center), 5, (0, 0, 255), -1)
-        bb_name = 'bounding_box_{0}.jpg'.format(index)
-        cv2.imwrite(bb_name, img)
 
     def get_object_2dlocation(self, index, results):
         x = int(results[index][1])
@@ -222,6 +200,23 @@ class YoloNode(object):
         obj_loc.bearing = bearing
         return obj_loc
 
+    # use this function to draw the bounding box
+    # of the detected object. For testing purposes
+    def draw_bounding_box(self, boxes, index):
+        img = np.zeros((self.img_width, self.img_height, 3), np.uint8)
+        img[:, :] = (255, 0, 0)
+        location = self.get_object_2dlocation(index, boxes)
+        x = location[0]
+        y = location[1]
+        w = location[2]
+        h = location[3]
+        x_center = location[4]
+        y_center = location[5]
+
+        cv2.rectangle(img, (x-w, y-h), (x+w, y+h), (0, 255, 0), 2)
+        cv2.circle(img, (x_center, y_center), 5, (0, 0, 255), -1)
+        bb_name = 'bounding_box_{0}.jpg'.format(index)
+        cv2.imwrite(bb_name, img)
 
 if __name__ == '__main__':
     parent_dir = sys.path[0]

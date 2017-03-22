@@ -96,6 +96,7 @@ class EKF():
         # wrap angle
         I[1] = np.mod(I[1] + math.pi, 2 * math.pi) - math.pi
         # store for plotting
+        # take this out in the future
         self.Inn.append(I)
 
         current_mu = np.matrix(self.mup).T + (K * np.matrix(I).T)
@@ -148,8 +149,8 @@ class EKF():
     # Live plotting, only use for debugging
     def plot(self):
         # Plot
-        plt.ion()
         plt.axis('equal')
+        fig1 = plt.figure(1)
         if(len(self.mf) > 0):
             plt.plot(self.mf[0], self.mf[1], 'bs')
         if((len(self.mu_S) > 0) & (len(self.mup_S) > 0)):
@@ -158,7 +159,17 @@ class EKF():
 
             mup_xs = [mup[0] for mup in self.mup_S]
             mup_ys = [mup[1] for mup in self.mup_S]
-            plt.plot(mu_xs, mu_ys, 'r.')
+
+            plt.figure(1)
+            plt.plot(mu_xs, mu_ys, 'b--')
             plt.plot(mup_xs, mup_ys, 'b--')
-            plt.show()
-            plt.pause(0.000001)
+            fig1.savefig('EKF.png')
+        if(len(self.Inn) > 0):
+            # plot the innovations
+            fig2 = plt.figure(2)
+            plt.figure(2)
+            innovation_r = [I[0] for I in self.Inn]
+            innovation_b = [I[1] for mup in self.Inn]
+            plt.plot(innovation_r, 'r')
+            plt.plot(innovation_b, 'b')
+            fig2.savefig('Innovations.png')

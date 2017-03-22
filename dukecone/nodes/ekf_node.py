@@ -16,7 +16,6 @@ class EKFNode():
         incoming_measure_top = '/dukecone/estimates/meas'
         mup_estimate_top = '/dukecone/estimates/mup'
         mu_estimate_top = '/dukecone/estimates/mu'
-        bot_state_top = '/dukecone/estimates/state'
 
         self.pub_incoming_meas = rospy.Publisher(
                                     incoming_measure_top,
@@ -30,11 +29,6 @@ class EKFNode():
 
         self.pub_mu_est = rospy.Publisher(
                                 mu_estimate_top,
-                                Vector3,
-                                queue_size=1)
-
-        self.pub_state_est = rospy.Publisher(
-                                bot_state_top,
                                 Vector3,
                                 queue_size=1)
 
@@ -209,10 +203,10 @@ class EKFNode():
         # this needs to be called
         # when there is input
         self.ekf.do_estimation()
+        #self.ekf.plot()
 
         # publish measurements
         # we are feeding to the EKF
-
         pub_meas_msg = self.make_measure_topic(self.ekf.y)
         self.pub_incoming_meas.publish(pub_meas_msg)
 
