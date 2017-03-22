@@ -153,6 +153,8 @@ def plot_ekf_estimates(est_data):
     plt.plot(est_data.incoming_measure.vec3_time,
              est_data.incoming_measure.y,
              label="Incoming measure y - Bearing")
+    x1, x2, y1, y2 = plt.axis()
+    plt.axis((x1, x2, -0.050, 0.05))
     plt.xlabel("Time (s)")
     plt.ylabel("Bearing (rad)")
     plt.savefig("test_plots/measure-y.png")
@@ -168,7 +170,7 @@ def plot_ekf_estimates(est_data):
     plt.axis([-1.5, 1.5, -1, 1])
     plt.plot(est_data.estimate_mu.x,
              est_data.estimate_mu.y,
-             'g^',
+             'b-',
              label="Ekf mu")
 
     # plt.plot(est_data.estimate_mup.x,
@@ -272,7 +274,8 @@ def plot_turtle_input(input_data):
     plt.subplot(211)
 
     plt.plot(input_data.input_cmd.vec3_time,
-             input_data.input_cmd.x)
+             input_data.input_cmd.x,
+             'm')
 
     plt.title("cmd_vel_mux/input/navi")
     plt.xlabel("Time (s)")
@@ -281,7 +284,8 @@ def plot_turtle_input(input_data):
     plt.subplot(212)
 
     plt.plot(input_data.input_cmd.vec3_time,
-             input_data.input_cmd.z)
+             input_data.input_cmd.z,
+             'm')
 
     plt.title("cmd_vel_mux/input/navi")
     plt.xlabel("Time (s)")

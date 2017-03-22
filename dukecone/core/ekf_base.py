@@ -2,112 +2,77 @@
 
 # Extended Kalman Filter implementation
 
+from scipy import linalg as la
 import numpy as np
 import math
 import matplotlib.pyplot as plt
 import copy
-
-from scipy import linalg as la
-
-class TurtleBot:
-
-    def __init__(self):
-        self.state = []
-
-        r = [1e-6, 1e-6, 1e-8]
-        self.R = np.diag(r)
-
-    def update_state(self, u, dt):
-        self.state[0] = self.state[
-            0] + u[0] * np.cos(self.state[2]) * dt
-        self.state[1] = self.state[
-            1] + u[0] * np.sin(self.state[2]) * dt
-        self.state[2] = self.state[2] + u[1] * dt
-
-        # Add Gaussian noise to motion
-        self.add_noise()
-
-    def add_noise(self):
-        # Select a motion disturbance
-        e = np.random.multivariate_normal([0, 0, 0], self.R, 1)
-        self.state[0] += e[0][0]
-        self.state[1] += e[0][1]
-        self.state[2] += e[0][2]
 
 
 class EKF():
 
     def __init__(self, x0, mu, S, dt):
 
-        self.bot = TurtleBot()
         # Simulation parameters
         self.x0 = x0                    # initial state
         self.n = len(self.x0)           # number of states
         self.dt = dt
 
-        self.bot.state = self.x0
-
-        self.mup = mu
-        self.y = [0, 0]
-
         self.mu = mu                    # mean
         self.S = S                      # Covariance matrix
 
-        # Measurement noise
-        q = [0.025, 0.25]
+        self.mup = mu                   # mu bar
+        self.y = [0, 0]
+
+        q = [0.025, 0.25]               # Measurement noise
         self.Q = np.diag(q)
+
+        r = [1e-2, 1e-4, 1e-6]          # Motion model noise
+        self.R = np.diag(r)
+
+        self.u = [0.0, 0.0]             # Initialize control inputs
+
+        # Initial feature location
+        self.mf = [1.2, 0.0]
 
         # Define measurement matrix
         self.Ht = None
-
-        # Control inputs
-        self.u = [0.2, 0.0]
-
         self.meas_updates = None
-
         self.measure_needs_update = False
 
-        # Simulation initializations
+        # For live plotting if neccessary
         self.mu_S = []
         self.mup_S = []
-        self.mf = [1.2, 0.0]
         self.Inn = []
 
-        self.bot_states = []
-
-    def update_input(self, new_input):
+    def update_cmd_input(self, new_input):
         # Make sure input makes sense
         assert(len(new_input) == 2)
         self.u = new_input
-        #print('Input ', self.u[0], self.u[1])
 
     def update_feat_mf(self, new_mf):
+        assert(len(new_mf) == 2)
         self.mf = new_mf
 
     def update_estimate(self):
         self.mup[0] = self.mu[0] + self.u[0] * np.cos(self.mu[2]) * self.dt
         self.mup[1] = self.mu[1] + self.u[0] * np.sin(self.mu[2]) * self.dt
         self.mup[2] = self.mu[2] + self.u[1] * self.dt
-        #print('mup ', self.mup[2])
-        # experimental Navs idea
-        self.mup[2] = np.mod(self.mup[2] + math.pi, 2 * math.pi) - math.pi
-        #print('mup ', self.mup[2])
-
 
     def set_measurement(self, feat_range, feat_bearing):
         self.y = [feat_range, feat_bearing]
         self.measure_needs_update = True
 
-    def calc_Ht(self, mf, mup):
+    def calc_Ht(self):
         # predicted range
-        rp = np.sqrt((np.power((mf[0] - mup[0]), 2)) +
-                     (np.power((mf[1] - mup[1]), 2)))
+        rp = np.sqrt((np.power((self.mf[0] - self.mup[0]), 2)) +
+                     (np.power((self.mf[1] - self.mup[1]), 2)))
 
-        self.Ht = np.matrix([[-(mf[0] - mup[0]) / rp,
-                              -(mf[1] - mup[1]) / rp,
+        self.Ht = np.matrix([[-(self.mf[0] - self.mup[0]) / rp,
+                              -(self.mf[1] - self.mup[1]) / rp,
                               0],
-                             [(mf[1] - mup[1]) / np.power(rp, 2),
-                              -(mf[0] - mup[0]) / np.power(rp, 2),
+                             [(self.mf[1] - self.mup[1]) / np.power(rp, 2),
+                              -(self.mf[0] - self.mup[0]) / np.power(rp, 2),
                               -1]])
 
     def process_measurements(self, mf, mup):
@@ -116,11 +81,9 @@ class EKF():
                                   np.power((mf[1] - mup[1]), 2))
         predicted_bearing = math.atan2(mf[1] - mup[1],
                                        mf[0] - mup[0]) - mup[2]
-        #print('bearing ', predicted_bearing)
         predicted_bearing = np.mod(
             predicted_bearing + math.pi,
             2 * math.pi) - math.pi
-        #print('bearing ', predicted_bearing)
         self.meas_updates = np.matrix([[predicted_range, predicted_bearing]])
 
     def update_measurement(self, h, Sp):
@@ -142,12 +105,6 @@ class EKF():
 
     def do_estimation(self):
 
-        # Keep storing these for plotting
-        current_state = copy.copy(self.bot.state)
-        self.bot_states.append(current_state)
-        # Update state for EKF comparison
-        self.bot.update_state(self.u, self.dt)
-
         # Extended Kalman Filter Estimation
         # ---------------------------------------------
         # Prediction update (mup)
@@ -160,10 +117,10 @@ class EKF():
                  [0, 0, 1]])
 
         # Calculate predicted covariance
-        Sp = Gt * self.S * Gt.transpose() + self.bot.R
+        Sp = Gt * self.S * Gt.transpose() + self.R
 
         # Linearization of measurement model
-        self.calc_Ht(self.mf, self.mup)
+        self.calc_Ht()
 
         # Measurement update
         # ---------------------------------------------
@@ -181,37 +138,27 @@ class EKF():
         # Store results
         # take this out in the future
         # since plotting happens outside
+        # Live plotting is for debugging only
         current_mup = copy.copy(self.mup)
         self.mup_S.append(current_mup)
 
         current_bot_mu = copy.copy(self.mu)
         self.mu_S.append(np.asarray(current_bot_mu))
 
+    # Live plotting, only use for debugging
     def plot(self):
         # Plot
         plt.ion()
-        fig = plt.figure(1)
         plt.axis('equal')
-        #plt.axis([0, 3, -0.5, 0.5])
-        if(len(self.mf)>0):
+        if(len(self.mf) > 0):
             plt.plot(self.mf[0], self.mf[1], 'bs')
-        #x_states = [state[0] for state in self.bot_states]
-        #y_states = [state[1] for state in self.bot_states]
-        #plt.plot(x_states, y_states, 'r--')
-        # plt.plot(
-        #    self.bot.state[0],
-        #    self.bot.state[1],
-        #    'r--')
         if((len(self.mu_S) > 0) & (len(self.mup_S) > 0)):
             mu_xs = [mu[0] for mu in self.mu_S]
             mu_ys = [mu[1] for mu in self.mu_S]
 
             mup_xs = [mup[0] for mup in self.mup_S]
             mup_ys = [mup[1] for mup in self.mup_S]
-            #print('mu' , mu_xs, mu_ys)
-            #print('mup', mup_xs, mup_ys)
             plt.plot(mu_xs, mu_ys, 'r.')
             plt.plot(mup_xs, mup_ys, 'b--')
             plt.show()
             plt.pause(0.000001)
-            #fig.savefig('SmellyEKF.png')
