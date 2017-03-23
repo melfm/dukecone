@@ -50,13 +50,9 @@ class EKFNode():
 
         # Define initial state and prior
         # Assume we have perfect knowledge of prior
-        x0 = [-1.2, 0.0, 0.0]
-        mu = x0
-        # number of states
-        n = len(x0)
-        # Define initial covariance
-        S = 0.1*np.identity(n)
-        self.ekf = ekf.EKF(x0, mu, S, self.dt)
+        mu = [-0.9, 0.6, 0.0]
+
+        self.ekf = ekf.EKF(mu, self.dt)
 
         ######################
         # MOCAP
@@ -75,7 +71,7 @@ class EKFNode():
         self.input_omega = 0.0
 
         # Publishers and subscribers
-        bot_odom_topic = '/odom'
+        bot_odom_topic = '/navi'
         self.ekf_sub_odom = rospy.Subscriber(
                                              bot_odom_topic,
                                              Odometry,
@@ -137,7 +133,8 @@ class EKFNode():
             if self.odom_omega == 0.0:
                 self.input_omega = 0.0
 
-            self.ekf.update_cmd_input([self.input_linear_x, 0.0])
+            self.ekf.update_cmd_input([self.input_linear_x,
+                                       self.input_omega])
 
             if (self.input_timer):
                 self.dt0 = rospy.get_rostime()
@@ -203,7 +200,7 @@ class EKFNode():
         # this needs to be called
         # when there is input
         self.ekf.do_estimation()
-        #self.ekf.plot()
+        # self.ekf.plot()
 
         # publish measurements
         # we are feeding to the EKF

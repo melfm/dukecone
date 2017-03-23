@@ -62,7 +62,7 @@ class DrawSquare():
         # let's turn at 45 deg/s
         turn_cmd = Twist()
         turn_cmd.linear.x = 0
-        turn_cmd.angular.z = radians(45)  # 45 deg/s in radians/s
+        turn_cmd.angular.z = radians(-45)  # 45 deg/s in radians/s
 
         # two keep drawing squares.  Go forward for 2 seconds (10 x 5 HZ) then
         # turn for 2 second
@@ -70,7 +70,7 @@ class DrawSquare():
         while not rospy.is_shutdown():
             # go forward 0.4 m (2 seconds * 0.2 m / seconds)
             rospy.loginfo("Going Straight")
-            for x in range(0, 10):
+            for x in range(0, 30):
                 self.cmd_vel.publish(move_cmd)
                 r.sleep()
             # turn 90 degrees

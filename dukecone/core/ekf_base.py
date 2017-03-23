@@ -11,29 +11,26 @@ import copy
 
 class EKF():
 
-    def __init__(self, x0, mu, S, dt):
+    def __init__(self, mu, dt):
 
-        # Simulation parameters
-        self.x0 = x0                    # initial state
-        self.n = len(self.x0)           # number of states
-        self.dt = dt
-
-        self.mu = mu                    # mean
-        self.S = S                      # Covariance matrix
-
+        self.mu = mu                    # belief
+        self.n = len(self.mu)           # number of states
         self.mup = mu                   # mu bar
+        self.dt = dt
+        # Covariance matrix
+        self.S = 0.1*np.identity(self.n)
         self.y = [0, 0]
 
-        q = [0.025, 0.25]               # Measurement noise
+        q = [0.025, 0.025]               # Measurement noise
         self.Q = np.diag(q)
 
-        r = [1e-2, 1e-4, 1e-6]          # Motion model noise
+        r = [1e-2, 1e-2, 1e-3]          # Motion model noise
         self.R = np.diag(r)
 
-        self.u = [0.0, 0.0]             # Initialize control inputs
+        self.u = [0.2, 0.0]             # Initialize control inputs
 
         # Initial feature location
-        self.mf = [1.2, 0.0]
+        self.mf = [1.23, 0.1]
 
         # Define measurement matrix
         self.Ht = None
@@ -162,7 +159,7 @@ class EKF():
 
             plt.figure(1)
             plt.plot(mu_xs, mu_ys, 'b--')
-            plt.plot(mup_xs, mup_ys, 'b--')
+            plt.plot(mup_xs, mup_ys, 'm--')
             fig1.savefig('EKF.png')
         if(len(self.Inn) > 0):
             # plot the innovations
