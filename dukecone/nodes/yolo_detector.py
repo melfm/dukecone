@@ -120,14 +120,18 @@ class YoloNode(object):
         if(detected):
             # Publish the distance and bounding box
             object_loc = [x_center, y_center]
-            bearing = self.calculate_bearing(object_loc)
-
+            measurements = self.calculate_bearing(object_loc, object_depth)
+            
+            bearing = measurements[0]
+            object_range = measurements[1]
+            
             object_topic = self.construct_topic(
                             bounding_box,
                             object_depth,
                             x_center,
                             y_center,
-                            bearing)
+                            bearing,
+                            object_range)
 
             # rospy.loginfo(self.pub_img_pos)
             self.pub_img_pos.publish(object_topic)
@@ -150,7 +154,7 @@ class YoloNode(object):
         pixie_avg = (pixie_avg/(end_width - starting_width)) * 0.001
         return float(pixie_avg)
 
-    def calculate_bearing(self, object_loc):
+    def calculate_bearing(self, object_loc, object_depth):
         # only consider horizontal FOV.
         # Bearing is only in 2D
         horiz_fov = 57.0  # degrees
@@ -158,7 +162,7 @@ class YoloNode(object):
         # Define Kinect image params
         image_width = 640  # Pixels
 
-        # Calculate Vertical and Horizontal Resolution
+        # Calculate Horizontal Resolution
         horiz_res = horiz_fov/image_width
 
         # location of object in pixels.
@@ -170,7 +174,16 @@ class YoloNode(object):
         bearing = obj_x*horiz_res        # degrees
         bearing = bearing*math.pi/180.0  # radians
 
-        return bearing
+        # Calculate true range, using measured bearing value.
+        # Defined as depth divided by cosine of bearing angle
+        if np.cos(bearing) != 0.0:
+            object_range = object_depth/np.cos(bearing)
+        else:
+            object_range = object_depth
+        
+        measurements = [bearing, object_range]
+        
+        return measurements
 
     def get_object_2dlocation(self, index, results):
         x = int(results[index][1])
@@ -188,7 +201,7 @@ class YoloNode(object):
         return [x, y, w, h, x_center, y_center]
 
     def construct_topic(self, bounding_box, distance, x_center, y_center,
-                        bearing):
+                        bearing, object_range):
         obj_loc = ObjectLocation()
         obj_loc.x_pos = bounding_box[0]
         obj_loc.y_pos = bounding_box[1]
@@ -198,6 +211,7 @@ class YoloNode(object):
         obj_loc.y_center = y_center
         obj_loc.distance = distance
         obj_loc.bearing = bearing
+        obj_loc.true_range = object_range
         return obj_loc
 
     # use this function to draw the bounding box

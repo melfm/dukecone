@@ -13,3 +13,6 @@ float64 distance
 
 # Bearing of the TurtleBot
 float64 bearing
+
+# True range from the object
+float64 true_range
