@@ -60,6 +60,9 @@ class EKFNode():
 
         # Define MOCAP variables
         self.bot_mocap_pose = []
+        self.mf_car = []
+        self.mf_dog = []
+        self.mf_monitor = []
 
         # Define input method
         # Set to either "odom" or "navi"
@@ -72,14 +75,12 @@ class EKFNode():
 
         # Publishers and subscribers
         bot_odom_topic = '/navi'
-        self.ekf_sub_odom = rospy.Subscriber(
-                                             bot_odom_topic,
+        self.ekf_sub_odom = rospy.Subscriber(bot_odom_topic,
                                              Odometry,
                                              self.bot_odom_callback)
 
         bot_input_topic = '/cmd_vel_mux/input/navi'
-        self.ekf_sub_input = rospy.Subscriber(
-                                              bot_input_topic,
+        self.ekf_sub_input = rospy.Subscriber(bot_input_topic,
                                               Twist,
                                               self.bot_input_callback)
 
@@ -90,16 +91,24 @@ class EKFNode():
 
         # MOCAP subscribers
         bot_mocap_top = '/turtlebot/ground_pose'
-        self.bot_mocap_sub = rospy.Subscriber(
-                                              bot_mocap_top,
+        self.bot_mocap_sub = rospy.Subscriber(bot_mocap_top,
                                               Pose2D,
                                               self.bot_mocap_callback)
 
-        obj1_mocap_top = '/obj1/ground_pose'
-        self.obj1_mocap_sub = rospy.Subscriber(
-                                              obj1_mocap_top,
+        car_mocap_top = '/car/ground_pose'
+        self.car_mocap_sub = rospy.Subscriber(car_mocap_top,
                                               Pose2D,
-                                              self.obj1_mocap_callback)
+                                              self.car_mocap_callback)
+        
+        dog_mocap_top = '/dog/ground_pose'
+        self.dog_mocap_sub = rospy.Subscriber(dog_mocap_top,
+                                              Pose2D,
+                                              self.dog_mocap_callback)
+
+        monitor_mocap_top = '/monitor/ground_pose'
+        self.monitor_mocap_sub = rospy.Subscriber(monitor_mocap_top,
+                                                  Pose2D,
+                                                  self.monitor_mocap_callback)
 
     def bot_odom_callback(self, data):
         self.odom_linear_x = data.twist.twist.linear.x
@@ -159,21 +168,45 @@ class EKFNode():
         # Update measurement
         self.ekf.set_measurement(self.feat_range,
                                  self.feat_bearing)
+        
+        # UPDATE MF. NEED IF STATEMENT BASED ON CLASS
+        # Currently, just update with car_mf
+        self.ekf.update_feat_mf(self.mf_car)
 
     def bot_mocap_callback(self, data):
         # Robot pose groundtruth
         self.bot_mocap_pose = [data.x, data.y, data.theta]
 
-    def obj1_mocap_callback(self, data):
-        new_mf = [data.x, data.y]
-        # convert from ENU to NWU
+    def car_mocap_callback(self, data):
+        mf_enu = [data.x, data.y]
+       
+        # Rotate from ENU to NWU
+        self.mf_car = self.mocap_rotation_helper(mf_enu)
+        
+    def dog_mocap_callback(self, data):
+        mf_enu = [data.x, data.y]
+
+        # Rotate from ENU to NWU
+        self.mf_dog = self.mocap_rotation_helper(mf_enu)
+
+    def monitor_mocap_callback(self, data):
+        mf_enu = [data.x, data.y]
+
+        # Rotate from ENU to NWU
+        self.mf_monitor = self.mocap_rotation_helper(mf_enu)
+
+    def mocap_rotation_helper(self, mf_input):
+        mf_enu = mf_input
+
+        # Define rotation matrix.
         R = np.matrix('0 1; -1 0')
-        mf_enu = (np.asarray(new_mf)).reshape(2, 1)
+        mf_enu = (np.asarray(mf_enu)).reshape(2, 1)
+
         mf_nwu = R * mf_enu
-        updated_mf = np.asarray(mf_nwu).flatten()
+        mf_nwu = np.asarray(mf_nwu).flatten()
 
-        self.ekf.update_feat_mf(updated_mf)
-
+        return mf_nwu
+    
     def make_measure_topic(self, input_y):
         measure_msg = Vector3()
         measure_msg.x = input_y[0]
