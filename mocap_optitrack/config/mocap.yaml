@@ -9,22 +9,17 @@ rigid_bodies:
         child_frame_id: Robot_1/base_link
         parent_frame_id: world
     '2':
-        pose: /obj1/pose
-        pose2d: /obj1/ground_pose
+        pose: /car/pose
+        pose2d: /car/ground_pose
         frame_id: Robot_2/base_link
         parent_frame_id: world
     '3':
-        pose: /obj2/pose
-        pose2d: /obj2/ground_pose
+        pose: /dog/pose
+        pose2d: /dog/ground_pose
         frame_id: Robot_3/base_link
         parent_frame_id: world
     '4':
-        pose: /obj3/pose
-        pose2d: /obj3/ground_pose
+        pose: /monitor/pose
+        pose2d: /monitor/ground_pose
         frame_id: Robot_4/base_link
-        parent_frame_id: world
-    '5':
-        pose: /obj4/pose
-        pose2d: /obj4/ground_pose
-        frame_id: Robot_5/base_link
         parent_frame_id: world
