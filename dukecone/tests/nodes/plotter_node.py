@@ -141,9 +141,13 @@ def plot_ekf_estimates(est_data):
     #########################
     plt.figure()
     plt.subplot(211)
+
+
     plt.plot(est_data.incoming_measure.vec3_time,
              est_data.incoming_measure.x,
              label="Incoming measure y - Range")
+    #x1, x2, y1, y2 = plt.axis()
+    #plt.axis((x1, x2, 2.1, 2.2))
 
     plt.title("Measurement Y-Input to EKF")
     plt.xlabel("Time (s)")
@@ -153,8 +157,8 @@ def plot_ekf_estimates(est_data):
     plt.plot(est_data.incoming_measure.vec3_time,
              est_data.incoming_measure.y,
              label="Incoming measure y - Bearing")
-    x1, x2, y1, y2 = plt.axis()
-    plt.axis((x1, x2, -0.050, 0.05))
+    #x1, x2, y1, y2 = plt.axis()
+    #plt.axis((x1, x2, -0.1, 0.1))
     plt.xlabel("Time (s)")
     plt.ylabel("Bearing (rad)")
     plt.savefig("test_plots/measure-y.png")
@@ -185,6 +189,9 @@ def plot_ekf_estimates(est_data):
     plt.ylabel("Y-position (m)")
 
     plt.subplot(212)
+    #x1, x2, y1, y2 = plt.axis()
+
+    #plt.axis([x1, x2, -1, 1])
     plt.plot(est_data.estimate_mu.vec3_time,
              est_data.estimate_mu.z,
              'b-',
@@ -240,13 +247,12 @@ def plot_mocap_ekf(mocap_data, est_data):
 
     plt.plot(mocap_data.position_turtle.x,
              mocap_data.position_turtle.y,
-             label="Turtlebot position gound truth")
+             label="Turtlebot position ground truth")
 
     plt.plot(mocap_data.position_object.x,
              mocap_data.position_object.y,
              'bo',
-             label="Object position gound truth")
-
+             label="Object position ground truth")
     plt.title("EKF/GT")
     plt.xlabel("X-pose (m)")
     plt.ylabel("Y-pose (m)")
@@ -259,6 +265,7 @@ def plot_mocap_ekf(mocap_data, est_data):
              est_data.estimate_mu.y,
              'r-',
              label="Ekf mu")
+    plt.legend(loc=0)
     plt.savefig("test_plots/ekf_gt.png")
 
 
