@@ -82,7 +82,7 @@ class TwistData:
 
         self.x.append(ros_msg.linear.x)
         self.y.append(ros_msg.linear.y)
-        self.z.append(ros_msg.linear.z)
+        self.z.append(ros_msg.angular.z)
 
 
 class EstimateData:
@@ -296,7 +296,7 @@ def plot_turtle_input(input_data):
 
     plt.title("cmd_vel_mux/input/navi")
     plt.xlabel("Time (s)")
-    plt.ylabel("Linear.z (m)")
+    plt.ylabel("Angular.z (m)")
 
     plt.subplots_adjust(bottom=0.08, hspace=0.5)
 
@@ -314,7 +314,7 @@ if __name__ == '__main__':
          "callback": motion_cmd.parse_input_cmd},
         {"topic": "/turtlebot/ground_pose",
          "callback": mocap_data.parse_position_body},
-        {"topic": "/obj1/ground_pose",
+        {"topic": "/car/ground_pose",
          "callback": mocap_data.parse_position_object},
         {"topic": "/dukecone/estimates/meas",
          "callback": est_data.parse_incoming_measures},

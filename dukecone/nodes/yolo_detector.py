@@ -121,10 +121,10 @@ class YoloNode(object):
             # Publish the distance and bounding box
             object_loc = [x_center, y_center]
             measurements = self.calculate_bearing(object_loc, object_depth)
-            
+
             bearing = measurements[0]
             object_range = measurements[1]
-            
+
             object_topic = self.construct_topic(
                             bounding_box,
                             object_depth,
@@ -180,9 +180,9 @@ class YoloNode(object):
             object_range = object_depth/np.cos(bearing)
         else:
             object_range = object_depth
-        
+
         measurements = [bearing, object_range]
-        
+
         return measurements
 
     def get_object_2dlocation(self, index, results):

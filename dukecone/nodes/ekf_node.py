@@ -48,21 +48,21 @@ class EKFNode():
         self.dt0 = None
         self.dt1 = None
 
-        # Define initial state and prior
-        # Assume we have perfect knowledge of prior
-        mu = [0.0, 0.0, -0.3]
-
-        self.ekf = ekf.EKF(mu, self.dt)
-
         ######################
         # MOCAP
         ######################
 
         # Define MOCAP variables
         self.bot_mocap_pose = []
-        self.mf_car = [1.2, 0]
+        self.mf_car = [1.37, -0.125]
         self.mf_dog = []
         self.mf_monitor = []
+
+        # Define initial state and prior
+        # Assume we have perfect knowledge of prior
+        mu = [-1.105, 0.619, 0.015]
+
+        self.ekf = ekf.EKF(mu, self.mf_car, self.dt)
 
         # Define input method
         # Set to either "odom" or "navi"
@@ -94,11 +94,11 @@ class EKFNode():
                                               Pose2D,
                                               self.bot_mocap_callback)
 
-        car_mocap_top = '/obj1/ground_pose'
+        car_mocap_top = '/car/ground_pose'
         self.car_mocap_sub = rospy.Subscriber(car_mocap_top,
                                               Pose2D,
                                               self.car_mocap_callback)
-        
+
         dog_mocap_top = '/dog/ground_pose'
         self.dog_mocap_sub = rospy.Subscriber(dog_mocap_top,
                                               Pose2D,
@@ -108,9 +108,7 @@ class EKFNode():
         self.monitor_mocap_sub = rospy.Subscriber(monitor_mocap_top,
                                                   Pose2D,
                                                   self.monitor_mocap_callback)
-        
-        
-        
+
     def bot_odom_callback(self, data):
         self.odom_linear_x = data.twist.twist.linear.x
         self.odom_omega = data.twist.twist.angular.z
@@ -118,8 +116,6 @@ class EKFNode():
         if self.input_method == "odom":
             self.ekf.update_cmd_input([self.odom_linear_x,
                                        self.odom_omega])
-
-            #print('Receiving odom input!')
 
             if (self.input_timer):
                 self.dt0 = rospy.get_rostime()
@@ -144,11 +140,9 @@ class EKFNode():
 
             if self.odom_omega == 0.0:
                 self.input_omega = 0.0
-                
-            #print('Receiving navi input!')
 
             self.ekf.update_cmd_input([self.input_linear_x,
-                                       0.0])
+                                       self.input_omega])
 
             if (self.input_timer):
                 self.dt0 = rospy.get_rostime()
@@ -170,26 +164,22 @@ class EKFNode():
         self.feat_range = data.distance
         self.feat_bearing = data.bearing
         self.feat_true_range = data.true_range
-        
-        #print('Receiving measurement')
 
         # Update measurement
         self.ekf.set_measurement(self.feat_true_range,
                                  self.feat_bearing)
 
-        self.ekf.update_feat_mf(self.mf_car)
-        
     def bot_mocap_callback(self, data):
         # Robot pose groundtruth
         self.bot_mocap_pose = [data.x, data.y, data.theta]
 
     def car_mocap_callback(self, data):
         mf_enu = [data.x, data.y]
-       
+
         # Rotate from ENU to NWU
         self.mf_car = self.mocap_rotation_helper(mf_enu)
 
-        #print('Receiving mocap')
+        self.ekf.update_feat_mf(self.mf_car)
 
     def dog_mocap_callback(self, data):
         mf_enu = [data.x, data.y]
@@ -214,7 +204,7 @@ class EKFNode():
         mf_nwu = np.asarray(mf_nwu).flatten()
 
         return mf_nwu
-    
+
     def make_measure_topic(self, input_y):
         measure_msg = Vector3()
         measure_msg.x = input_y[0]

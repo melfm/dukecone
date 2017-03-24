@@ -4,14 +4,14 @@
 
 from scipy import linalg as la
 import numpy as np
-import math
+from math import pi, atan2
 import matplotlib.pyplot as plt
 import copy
-import pdb
+
 
 class EKF():
 
-    def __init__(self, mu, dt):
+    def __init__(self, mu, mf, dt):
 
         self.mu = mu                    # belief
         self.n = len(self.mu)           # number of states
@@ -21,16 +21,16 @@ class EKF():
         self.S = 0.1*np.identity(self.n)
         self.y = [0, 0]
 
-        q = [0.25, 0.25]               # Measurement noise
+        q = [0.025, 0.0025]               # Measurement noise
         self.Q = np.diag(q)
 
-        r = [1e-2, 1e-2, 1e-3]          # Motion model noise
+        r = [1e-2, 1e-2, 0.1]          # Motion model noise
         self.R = np.diag(r)
 
         self.u = [0.0, 0.0]             # Initialize control inputs
 
         # Initial feature location
-        self.mf = [1.2, 0.0]
+        self.mf = mf
 
         # Define measurement matrix
         self.Ht = None
@@ -41,8 +41,12 @@ class EKF():
         self.mu_S = []
         self.mup_S = []
         self.Inn = []
-        
-        self.do_estimation()
+
+        # Define range and bearing threshold for filtering
+        self.range_threshold = 0.05
+        self.bearing_threshold = 0.1
+        self.meas_counter = 0
+        self.prev_y = []
 
     def update_cmd_input(self, new_input):
         # Make sure input makes sense
@@ -60,7 +64,22 @@ class EKF():
 
     def set_measurement(self, feat_range, feat_bearing):
         self.y = [feat_range, feat_bearing]
-        print('actual_measurements:', self.y)
+        self.meas_counter += 1
+
+        if self.meas_counter == 1:
+            self.prev_y = self.y
+
+        range_diff = np.absolute(self.y[0] - self.prev_y[0])
+        bearing_diff = np.absolute(self.y[1] - self.prev_y[1])
+
+        if range_diff > self.range_threshold:
+            self.y[0] = self.prev_y[0]
+
+        if bearing_diff > self.bearing_threshold:
+            self.y[1] = self.prev_y[1]
+
+        self.prev_y = self.y
+
         self.measure_needs_update = True
 
     def calc_Ht(self):
@@ -79,16 +98,11 @@ class EKF():
         # Calculate range
         predicted_range = np.sqrt(np.power((mf[0] - mup[0]), 2) +
                                   np.power((mf[1] - mup[1]), 2))
-        predicted_bearing = math.atan2(mf[1] - mup[1],
-                                       mf[0] - mup[0]) - mup[2]
-        predicted_bearing = np.mod(predicted_bearing + math.pi, 2 * math.pi)\
-                            - math.pi
-        
-        print('meas_prediction:', predicted_range, predicted_bearing,)
-        
+        predicted_bearing = atan2(mf[1] - mup[1],
+                                  mf[0] - mup[0]) - mup[2]
+        predicted_bearing = np.mod(predicted_bearing + pi, 2 * pi) - pi
+
         self.meas_updates = np.matrix([[predicted_range, predicted_bearing]])
-        
-        #print('Meas Update:', predicted_range, predicted_bearing)
 
     def update_measurement(self, h, Sp):
         # Measurement update
@@ -98,7 +112,7 @@ class EKF():
 
         I = self.y - h
         # wrap angle
-        I[1] = np.mod(I[1] + math.pi, 2 * math.pi) - math.pi
+        I[1] = np.mod(I[1] + pi, 2 * pi) - pi
         # store for plotting
         # take this out in the future
         self.Inn.append(I)
@@ -149,9 +163,7 @@ class EKF():
 
         current_bot_mu = copy.copy(self.mu)
         self.mu_S.append(np.asarray(current_bot_mu))
-        
-        #print('mu:', self.mu)
-        
+
     # Live plotting, only use for debugging
     def plot(self):
         # Plot
