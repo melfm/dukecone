@@ -9,8 +9,8 @@ rigid_bodies:
         child_frame_id: Robot_1/base_link
         parent_frame_id: world
     '2':
-        pose: /car/pose
-        pose2d: /car/ground_pose
+        pose: /obj1/pose
+        pose2d: /obj1/ground_pose
         frame_id: Robot_2/base_link
         parent_frame_id: world
     '3':

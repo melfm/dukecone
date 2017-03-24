@@ -7,7 +7,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import copy
-
+import pdb
 
 class EKF():
 
@@ -21,16 +21,16 @@ class EKF():
         self.S = 0.1*np.identity(self.n)
         self.y = [0, 0]
 
-        q = [0.025, 0.025]               # Measurement noise
+        q = [0.25, 0.25]               # Measurement noise
         self.Q = np.diag(q)
 
         r = [1e-2, 1e-2, 1e-3]          # Motion model noise
         self.R = np.diag(r)
 
-        self.u = [0.2, 0.0]             # Initialize control inputs
+        self.u = [0.0, 0.0]             # Initialize control inputs
 
         # Initial feature location
-        self.mf = [1.23, 0.1]
+        self.mf = [1.2, 0.0]
 
         # Define measurement matrix
         self.Ht = None
@@ -41,6 +41,8 @@ class EKF():
         self.mu_S = []
         self.mup_S = []
         self.Inn = []
+        
+        self.do_estimation()
 
     def update_cmd_input(self, new_input):
         # Make sure input makes sense
@@ -58,6 +60,7 @@ class EKF():
 
     def set_measurement(self, feat_range, feat_bearing):
         self.y = [feat_range, feat_bearing]
+        print('actual_measurements:', self.y)
         self.measure_needs_update = True
 
     def calc_Ht(self):
@@ -78,10 +81,14 @@ class EKF():
                                   np.power((mf[1] - mup[1]), 2))
         predicted_bearing = math.atan2(mf[1] - mup[1],
                                        mf[0] - mup[0]) - mup[2]
-        predicted_bearing = np.mod(
-            predicted_bearing + math.pi,
-            2 * math.pi) - math.pi
+        predicted_bearing = np.mod(predicted_bearing + math.pi, 2 * math.pi)\
+                            - math.pi
+        
+        print('meas_prediction:', predicted_range, predicted_bearing,)
+        
         self.meas_updates = np.matrix([[predicted_range, predicted_bearing]])
+        
+        #print('Meas Update:', predicted_range, predicted_bearing)
 
     def update_measurement(self, h, Sp):
         # Measurement update
@@ -142,7 +149,9 @@ class EKF():
 
         current_bot_mu = copy.copy(self.mu)
         self.mu_S.append(np.asarray(current_bot_mu))
-
+        
+        #print('mu:', self.mu)
+        
     # Live plotting, only use for debugging
     def plot(self):
         # Plot
