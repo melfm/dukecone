@@ -43,8 +43,8 @@ class EKF():
         self.Inn = []
 
         # Define range and bearing threshold for filtering
-        self.range_threshold = 0.4
-        self.bearing_threshold = 0.5
+        self.range_threshold = 100 #0.1
+        self.bearing_threshold = 10 # 0.5
         self.prev_y = None
 
     def update_cmd_input(self, new_input):
@@ -60,6 +60,10 @@ class EKF():
         self.mup[0] = self.mu[0] + self.u[0] * np.cos(self.mu[2]) * self.dt
         self.mup[1] = self.mu[1] + self.u[0] * np.sin(self.mu[2]) * self.dt
         self.mup[2] = self.mu[2] + self.u[1] * self.dt
+        print('mup before ', self.mup[2])
+        self.mup[2] = np.mod(self.mup[2] + pi, 2 * pi) - pi
+        print('mup after experimental', self.mup[2])
+        print(self.u[0], self.u[1])
 
     def set_measurement(self, feat_range, feat_bearing):
         self.y = [feat_range, feat_bearing]

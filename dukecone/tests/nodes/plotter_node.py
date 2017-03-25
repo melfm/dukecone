@@ -114,14 +114,20 @@ class MocapData:
         # "/turtlebot/ground_pose"
         self.position_turtle = Pos2Data()
 
-        # "/ob1/ground_pose"
-        self.position_object = Pos2Data()
+        # "/car/ground_pose"
+        self.position_car = Pos2Data()
+
+        # "/monitor/ground_pose"
+        self.position_monitor = Pos2Data()
 
     def parse_position_body(self, ros_msg, ros_time):
         self.position_turtle.parse_msg(ros_msg, ros_time)
 
-    def parse_position_object(self, ros_msg, ros_time):
-        self.position_object.parse_msg(ros_msg, ros_time)
+    def parse_position_car(self, ros_msg, ros_time):
+        self.position_car.parse_msg(ros_msg, ros_time)
+
+    def parse_position_monitor(self, ros_msg, ros_time):
+        self.position_monitor.parse_msg(ros_msg, ros_time)
 
 
 class MotionCmdData:
@@ -141,7 +147,6 @@ def plot_ekf_estimates(est_data):
     #########################
     plt.figure()
     plt.subplot(211)
-
 
     plt.plot(est_data.incoming_measure.vec3_time,
              est_data.incoming_measure.x,
@@ -221,8 +226,12 @@ def plot_mocap_data(mocap_data):
              mocap_data.position_turtle.y,
              label="Turtlebot position gound truth")
 
-    plt.plot(mocap_data.position_object.x,
-             mocap_data.position_object.y,
+    plt.plot(mocap_data.position_car.x,
+             mocap_data.position_car.y,
+             'bo')
+
+    plt.plot(mocap_data.position_monitor.x,
+             mocap_data.position_monitor.y,
              'bo',
              label="Object position gound truth")
 
@@ -249,10 +258,15 @@ def plot_mocap_ekf(mocap_data, est_data):
              mocap_data.position_turtle.y,
              label="Turtlebot position ground truth")
 
-    plt.plot(mocap_data.position_object.x,
-             mocap_data.position_object.y,
+    plt.plot(mocap_data.position_car.x,
+             mocap_data.position_car.y,
              'bo',
              label="Object position ground truth")
+
+    plt.plot(mocap_data.position_monitor.x,
+             mocap_data.position_monitor.y,
+             'bo')
+
     plt.title("EKF/GT")
     plt.xlabel("X-pose (m)")
     plt.ylabel("Y-pose (m)")
@@ -272,7 +286,7 @@ def plot_mocap_ekf(mocap_data, est_data):
 def plot_turtle_input(input_data):
     #########################
     # Plot input cmds
-    #########################
+    #########################:
     # change directory to store in the plot dir
     os.chdir('../')
 
@@ -315,7 +329,9 @@ if __name__ == '__main__':
         {"topic": "/turtlebot/ground_pose",
          "callback": mocap_data.parse_position_body},
         {"topic": "/car/ground_pose",
-         "callback": mocap_data.parse_position_object},
+         "callback": mocap_data.parse_position_car},
+        {"topic": "/monitor/ground_pose",
+         "callback": mocap_data.parse_position_monitor},
         {"topic": "/dukecone/estimates/meas",
          "callback": est_data.parse_incoming_measures},
         {"topic": "/dukecone/estimates/mu",
