@@ -80,18 +80,18 @@ class YoloNode(object):
             print(e)
 
     def calculate_distance(self, results, image_depth):
-        # Only publish if you see a cone and the closest
+        # Only publish if you see an object and the closest
         # Loop through all the bounding boxes and find min
         object_depth = sys.maxsize
         detected = False
-        bounding_box = None
+        #bounding_box = None
         for i in range(len(results)):
-            # for now grab puppy since we cant detect cones
-            if(results[i][0] == 'car'):
+            # check for objects pre-defined in mocap
+            if(results[i][0] == 'car' or results[i][0] == 'tvmonitor'):
                 detected = True
                 location = self.get_object_2dlocation(i, results)
-                x = location[0]
-                y = location[1]
+                #x = location[0]
+                #y = location[1]
                 w = location[2]
                 h = location[3]
                 x_center = location[4]
@@ -115,7 +115,8 @@ class YoloNode(object):
                 # self.draw_bounding_box(results, i)
                 if distance < object_depth:
                     object_depth = distance_avg
-                    bounding_box = [x, y, w, h]
+                    #bounding_box = [x, y, w, h]
+                    object_name = results[i][0]
 
         if(detected):
             # Publish the distance and bounding box
@@ -126,12 +127,12 @@ class YoloNode(object):
             object_range = measurements[1]
 
             object_topic = self.construct_topic(
-                            bounding_box,
                             object_depth,
                             x_center,
                             y_center,
                             bearing,
-                            object_range)
+                            object_range,
+                            object_name)
 
             # rospy.loginfo(self.pub_img_pos)
             self.pub_img_pos.publish(object_topic)
@@ -200,18 +201,15 @@ class YoloNode(object):
 
         return [x, y, w, h, x_center, y_center]
 
-    def construct_topic(self, bounding_box, distance, x_center, y_center,
-                        bearing, object_range):
+    def construct_topic(self, distance, x_center, y_center,
+                        bearing, object_range, object_name):
         obj_loc = ObjectLocation()
-        obj_loc.x_pos = bounding_box[0]
-        obj_loc.y_pos = bounding_box[1]
-        obj_loc.width = bounding_box[2]
-        obj_loc.height = bounding_box[3]
         obj_loc.x_center = x_center
         obj_loc.y_center = y_center
         obj_loc.distance = distance
         obj_loc.bearing = bearing
         obj_loc.true_range = object_range
+        obj_loc.tag = object_name
         return obj_loc
 
     # use this function to draw the bounding box

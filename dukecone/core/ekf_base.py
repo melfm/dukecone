@@ -43,10 +43,9 @@ class EKF():
         self.Inn = []
 
         # Define range and bearing threshold for filtering
-        self.range_threshold = 0.05
-        self.bearing_threshold = 0.1
-        self.meas_counter = 0
-        self.prev_y = []
+        self.range_threshold = 0.4
+        self.bearing_threshold = 0.5
+        self.prev_y = None
 
     def update_cmd_input(self, new_input):
         # Make sure input makes sense
@@ -64,18 +63,23 @@ class EKF():
 
     def set_measurement(self, feat_range, feat_bearing):
         self.y = [feat_range, feat_bearing]
-        self.meas_counter += 1
 
-        if self.meas_counter == 1:
-            self.prev_y = self.y
+        if self.prev_y is None:
+            self.prev_y = list(self.y)
 
         range_diff = np.absolute(self.y[0] - self.prev_y[0])
         bearing_diff = np.absolute(self.y[1] - self.prev_y[1])
 
         if range_diff > self.range_threshold:
+            print('Hitting range threshold')
+            print('range diff ', range_diff)
+            print('actual measure ', self.y[0])
             self.y[0] = self.prev_y[0]
 
         if bearing_diff > self.bearing_threshold:
+            print('Bearing threshold')
+            print('bearing diff', bearing_diff)
+            print('actual bearing ', self.y[1])
             self.y[1] = self.prev_y[1]
 
         self.prev_y = self.y
