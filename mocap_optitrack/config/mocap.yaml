@@ -14,12 +14,12 @@ rigid_bodies:
         frame_id: Robot_2/base_link
         parent_frame_id: world
     '3':
-        pose: /dog/pose
-        pose2d: /dog/ground_pose
+        pose: /monitor/pose
+        pose2d: /monitor/ground_pose
         frame_id: Robot_3/base_link
         parent_frame_id: world
     '4':
-        pose: /monitor/pose
-        pose2d: /monitor/ground_pose
+        pose: /dog/pose
+        pose2d: /dog/ground_pose
         frame_id: Robot_4/base_link
         parent_frame_id: world
