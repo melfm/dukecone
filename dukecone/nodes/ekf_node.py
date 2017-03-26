@@ -55,14 +55,15 @@ class EKFNode():
 
         # Define MOCAP variables
         self.bot_mocap_pose = []
-        self.mf_car = [1.24, -0.046]
-        self.mf_dog = []
-        self.mf_monitor = [-1.202, -0.0179]
+        self.mf_car = [1.269, 1.22]
+        self.mf_dog = [-1.23, 0.399]
+        self.mf_monitor = [0.562, -0.867]
         self.mf = self.mf_car
+        self.previous_mf = 'car'
 
         # Define initial state and prior
         # Assume we have perfect knowledge of prior
-        mu = [-1.012, 1.1045, 0.0]
+        mu = [-0.5589, 0.815, 0.25]
 
         self.ekf = ekf.EKF(mu, self.mf, self.dt)
 
@@ -168,10 +169,16 @@ class EKFNode():
         self.feat_true_range = data.true_range
         self.feat_tag = data.tag
 
-        if(self.feat_tag =='car'):
+        if(self.feat_tag == 'car'):
+            self.previous_tag = 'car'
             self.ekf.update_feat_mf(self.mf_car)
-        elif(self.feat_tag =='tvmonitor'):
+        elif(self.feat_tag == 'tvmonitor'):
             self.ekf.update_feat_mf(self.mf_monitor)
+
+        if(self.feat_tag != self.previous_tag):
+            self.ekf.disable_meas_threshold()
+            # update the previous tag
+            self.previous_tag = 'tvmonitor'
 
         # Update measurement
         self.ekf.set_measurement(self.feat_true_range,
@@ -186,7 +193,6 @@ class EKFNode():
 
         # Rotate from ENU to NWU
         self.mf_car = self.mocap_rotation_helper(mf_enu)
-
 
     def dog_mocap_callback(self, data):
         mf_enu = [data.x, data.y]

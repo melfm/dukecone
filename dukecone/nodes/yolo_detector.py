@@ -87,7 +87,10 @@ class YoloNode(object):
         #bounding_box = None
         for i in range(len(results)):
             # check for objects pre-defined in mocap
-            if(results[i][0] == 'car' or results[i][0] == 'tvmonitor'):
+            current_feat = results[i][0]
+            if(current_feat == 'car' or
+                    current_feat == 'tvmonitor' or
+                    current_feat == 'dog'):
                 detected = True
                 location = self.get_object_2dlocation(i, results)
                 #x = location[0]
