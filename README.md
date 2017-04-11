@@ -2,9 +2,10 @@
 
 Neural Network based EKF Localization. For the reason behind the name, google duke cone :)
 
-
+An implementation of object-based localization method using neural networks.
+ 
 ## Requirements : Software
-An implementation of object-based localization method using neural networks. This project relies on the following open-source projects :
+This project relies on the following open-source projects :
 - [Yolo](https://github.com/pjreddie/darknet)
 - [Tensorflow](https://www.tensorflow.org/)
 - [Ros Indigo](http://wiki.ros.org/indigo)
@@ -14,7 +15,7 @@ An implementation of object-based localization method using neural networks. Thi
 
 
 ## Requirements : Hardware
-- [Turtlebot](https://www.clearpathrobotics.com/turtlebot-2-open-source-robot/)
+- [Turtlebot Robot](https://www.clearpathrobotics.com/turtlebot-2-open-source-robot/)
 - NVIDIA Titan X GPU
 - Mocap_optitrack
 
