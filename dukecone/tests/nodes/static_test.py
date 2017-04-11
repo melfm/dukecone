@@ -6,22 +6,13 @@ import numpy as np
 import rosbag
 from rosbag_parser import rosbag_parser
 
-# Import ROS messages
-from geometry_msgs.msg import Pose2D
-
-# Import custom messages
-from dukecone.msg import ObjectLocation
 
 # Define rosbag (all options)
-# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/0p85m_yolo.bag"
-# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/1p3m_yolo.bag"
-# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/2p6m_yolo.bag"
-bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/12deg_yolo.bag"
-# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/22deg_yolo.bag"
-# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/n9deg_yolo.bag"
-# bag_topic = "/home/pganti/rosbags/dukecone/static_yolo_new_bearing/n17deg_yolo.bag"
+bag_topic = "/home/xxxx/rosbags/dukecone/static_yolo_new_bearing/12deg_yolo.bag"
+
 
 bag = rosbag.Bag(bag_topic)
+
 
 class ObjLocationData:
 
@@ -34,6 +25,7 @@ class ObjLocationData:
         self.time.append(ros_time)
         self.range.append(ros_msg.distance)
         self.bearing.append(ros_msg.bearing)
+
 
 class PoseData:
 
@@ -57,14 +49,14 @@ class PoseData:
         self.theta.append(ros_msg_nwu[2])
 
     def rotation_helper(self, pose_dim, input_vec_enu):
-    
+
         if (pose_dim == 2):
             R = np.matrix('0 1; -1 0')
             input_array_enu = (np.asarray(input_vec_enu)).reshape(2, 1)
             input_vec_nwu = R * input_array_enu
             input_vec_nwu = np.asarray(input_vec_nwu).flatten()
             return input_vec_nwu
-    
+
         elif (pose_dim == 3):
             # apply rotation
             R = np.matrix('0 1 0; -1 0 0; 0 0 1')
@@ -78,11 +70,11 @@ class PoseData:
 
 
 class TensorflowData:
-    
+
     def __init__(self):
         # "/tensorflow/object/location"
         self.obj1_location = ObjLocationData()
-        
+
     def parse_measurements(self, ros_msg, ros_time):
         self.obj1_location.parse_msg(ros_msg, ros_time)
 
@@ -92,22 +84,23 @@ class MocapData:
     def __init__(self):
         # "/turtlebot/ground_pose"
         self.turtlebot_pose = PoseData()
-        
+
         # "/obj1/ground_pose"
         self.obj1_position = PoseData()
-    
+
     def parse_pose_turtlebot(self, ros_msg, ros_time):
         self.turtlebot_pose.parse_msg(ros_msg, ros_time)
-        
+
     def parse_position_obj(self, ros_msg, ros_time):
         self.obj1_position.parse_msg(ros_msg, ros_time)
+
 
 def run_tests(mocap_data, tensorflow_data):
     # Average all info
     turtlebot_x_avg = np.mean(mocap_data.turtlebot_pose.x)
     turtlebot_y_avg = np.mean(mocap_data.turtlebot_pose.y)
     turtlebot_theta_avg = np.mean(mocap_data.turtlebot_pose.theta)
-    
+
     obj1_x_avg = np.mean(mocap_data.obj1_position.x)
     obj1_y_avg = np.mean(mocap_data.obj1_position.y)
 
@@ -118,14 +111,18 @@ def run_tests(mocap_data, tensorflow_data):
     calc_range = np.sqrt(np.power((obj1_x_avg - turtlebot_x_avg), 2)
                          + np.power((obj1_y_avg - turtlebot_y_avg), 2))
     calc_bearing = math.atan2(obj1_y_avg - turtlebot_y_avg,
-                                obj1_x_avg - turtlebot_x_avg) \
-                   - turtlebot_theta_avg
-                   
+                              obj1_x_avg - turtlebot_x_avg) \
+        - turtlebot_theta_avg
+
     calc_bearing = calc_bearing*180.0/math.pi
-    
+
     print('Statistics for bag:', bag_topic)
     print('------------------------------------')
-    print('Robot State, Mocap:', turtlebot_x_avg, turtlebot_y_avg, turtlebot_theta_avg)
+    print(
+        'Robot State, Mocap:',
+        turtlebot_x_avg,
+        turtlebot_y_avg,
+     turtlebot_theta_avg)
     print('Car Position:', obj1_x_avg, obj1_y_avg)
     print('------------------------------------')
     print('Average Values')
@@ -136,15 +133,15 @@ def run_tests(mocap_data, tensorflow_data):
     print('Calculated Bearing:', calc_bearing)
     print('Measured Bearing:', obj1_bearing_avg)
     print('-------------------------------------')
-    
+
     # Calculate Standard Deviation and variance
     turtlebot_x_var = np.var(mocap_data.turtlebot_pose.x)
     turtlebot_y_var = np.var(mocap_data.turtlebot_pose.y)
     turtlebot_theta_var = np.var(mocap_data.turtlebot_pose.theta)
-    
+
     obj1_x_var = np.var(mocap_data.obj1_position.x)
     obj1_y_var = np.var(mocap_data.obj1_position.y)
-    
+
     obj1_range_var = np.var(tensorflow_data.obj1_location.range)
     obj1_bearing_var = np.var(tensorflow_data.obj1_location.bearing)
 
@@ -158,26 +155,29 @@ def run_tests(mocap_data, tensorflow_data):
     print('Object 1 Range Variance:', obj1_range_var)
     print('Object 1 Bearing Variance:', obj1_bearing_var)
     print('------------------------------------')
-    
+
     # Calculate variance of measurements with respect to MOCAP ground truth
     # Treat calc_range and calc_bearing as the mean values
-    var_range_comp = sum([(r_i - calc_range)**2 for r_i in tensorflow_data.obj1_location.range]) \
-                    / (len(tensorflow_data.obj1_location.range) - 1)
-    var_bearing_comp = sum([(th_i - calc_bearing)**2 for th_i in tensorflow_data.obj1_location.bearing]) \
-                       / (len(tensorflow_data.obj1_location.bearing) - 1)
-    
+    var_range_comp = sum([(r_i - calc_range) ** 2
+                          for r_i in tensorflow_data.obj1_location.range]) / (
+        len(tensorflow_data.obj1_location.range) - 1)
+    var_bearing_comp = sum(
+        [(th_i - calc_bearing) ** 2
+         for th_i in tensorflow_data.obj1_location.bearing]) / (
+        len(tensorflow_data.obj1_location.bearing) - 1)
+
     # Print comparison values
     print('Variance for Measured Values wrt Ground Truth')
     print('---------------------------------------')
     print('Range Variance:', var_range_comp)
     print('Bearing Variance:', var_bearing_comp)
-        
+
 
 if __name__ == '__main__':
     # Create MOCAP and Tensorflow
     mocap_data = MocapData()
     tensorflow_data = TensorflowData()
-    
+
     # Define parameters for rosbag_parser
     params = [
         {"topic": "/turtlebot/ground_pose",
@@ -187,9 +187,9 @@ if __name__ == '__main__':
         {"topic": "/tensorflow/object/location",
          "callback": tensorflow_data.parse_measurements},
     ]
-    
+
     # Run ROSBAG parser
     rosbag_parser(bag, params)
-    
+
     # Run tests on extracted data
     run_tests(mocap_data, tensorflow_data)

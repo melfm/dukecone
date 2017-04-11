@@ -267,7 +267,6 @@ if __name__ == '__main__':
     # Run the Yolo ros node
     yolonode = YoloNode(yolo)
     rospy.init_node('YoloNode', anonymous=True)
-    # what rate do we want?
     r = rospy.Rate(30)
 
     try:
