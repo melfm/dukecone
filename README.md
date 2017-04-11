@@ -1,6 +1,6 @@
 # duke-cone
 
-Neural Network based EKF Localization
+Neural Network based EKF Localization. For the reason behind the name, google duke cone :)
 
 
 ## Requirements : Software
